@@ -1,0 +1,1807 @@
+<style>
+    /* Absolute WordPress Override - Locks viewport, prevents scrolling */
+    html, body { 
+        margin: 0 !important; padding: 0 !important; overflow: hidden !important; 
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        background-color: #000 !important; touch-action: none !important;
+        -webkit-touch-callout: none !important; -webkit-user-select: none !important; user-select: none !important;
+    }
+    
+    #wpadminbar, header, footer, nav, aside, .site-header, .site-footer, .ast-primary-header-bar, .site-branding, .entry-header, .entry-title { 
+        display: none !important; opacity: 0 !important; pointer-events: none !important; z-index: -9999 !important; 
+    }
+    
+    #sentinel-wrapper { 
+        position: fixed !important; top: 0 !important; left: 0 !important; 
+        width: 100vw !important; height: 100dvh !important; 
+        z-index: 2147483647 !important; background: #000 !important;
+    }
+    
+    #sentinel-frame { width: 100%; height: 100%; border: none; display: block; }
+</style>
+
+<div id="sentinel-wrapper">
+    <iframe id="sentinel-frame" allow="autoplay; fullscreen; accelerometer; gyroscope"></iframe>
+</div>
+
+<textarea id="sentinel-source" style="display:none;">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;Sentinel · Solana Token Scanner &amp; Signaller&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --bg: #0a0c0e;
+            --card: #14171c;
+            --text: #d1d5db;
+            --accent: #60a5fa;
+            --green: #34d399;
+            --red: #f87171;
+            --yellow: #fbbf24;
+            --border: #374151;
+            --glow: rgba(96, 165, 250, 0.25);
+        }
+        /* Reset any WordPress interference */
+        body { background: var(--bg) !important; color: var(--text) !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
+        h1 { text-align: center; color: var(--accent); margin-bottom: 30px; font-size: 2.2rem; text-shadow: 0 0 12px var(--glow); }
+        
+        /* Toast Notifications */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 10005; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { background: var(--card); border-left: 4px solid var(--accent); color: var(--text); padding: 15px 20px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); font-size: 0.95rem; animation: slideIn 0.3s ease-out forwards; display: flex; justify-content: space-between; align-items: center; min-width: 250px; pointer-events: auto; }
+        .toast.error { border-left-color: var(--red); }
+        .toast.success { border-left-color: var(--green); }
+        .toast.warn { border-left-color: var(--yellow); }
+        .toast-close { cursor: pointer; margin-left: 15px; color: #9ca3af; font-weight: bold; font-size: 1.2rem; transition: 0.2s; }
+        .toast-close:hover { color: #fff; }
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
+
+        .top-bar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+
+        .settings-btn { padding: 8px 16px; background: rgba(96, 165, 250, 0.1); border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+        .settings-btn:hover { background: rgba(96, 165, 250, 0.2); }
+        
+        .index-bar { display: flex; align-items: center; gap: 20px; background: var(--card); padding: 12px 24px; border-radius: 40px; border: 1px solid var(--border); width: fit-content; }
+        .index-label { display: flex; align-items: center; gap: 6px; color: #9ca3af; font-size: 0.9rem; }
+        .index-value { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+        .index-meter { width: 100px; height: 8px; background: #2d3748; border-radius: 4px; overflow: hidden; }
+        .index-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+        .index-fill.greed { background: var(--green); box-shadow: 0 0 8px var(--green); }
+        .index-fill.fear { background: var(--red); box-shadow: 0 0 8px var(--red); }
+        .index-fill.neutral { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+
+        /* Signal Banner */
+        .signal-banner { background: rgba(20, 23, 28, 0.9); border: 1px solid var(--accent); border-radius: 8px; padding: 15px 20px; margin-bottom: 25px; box-shadow: 0 0 20px rgba(96, 165, 250, 0.15); position: relative; overflow: hidden; }
+        .signal-banner::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+        .signal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px dashed var(--border); padding-bottom: 10px; flex-wrap: wrap; gap: 10px;}
+        .signal-title { color: var(--accent); font-weight: 800; font-size: 1.2rem; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        #signal-countdown { font-family: monospace; color: var(--yellow); font-size: 1.1rem; }
+        .signal-status { font-size: 0.9rem; color: #9ca3af; }
+        
+        .signal-tier-tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; align-items: center; flex-wrap: wrap; }
+        .sig-tab { padding: 6px 12px; background: #1f2937; border: 1px solid #374151; color: #9ca3af; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: 0.2s; white-space: nowrap; flex: 1; text-align: center; }
+        .sig-tab:hover { background: #374151; color: #fff; }
+        .sig-tab.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: bold; }
+        
+        .signal-type-toggle { display: flex; gap: 10px; margin-bottom: 10px; justify-content: flex-end; }
+        .type-btn { padding: 4px 12px; background: #1f2937; border: 1px solid var(--border); color: #9ca3af; border-radius: 4px; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
+        .type-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+        .action-btns { display: flex; gap: 8px; margin-top: 8px; width: 100%; justify-content: flex-end; }
+        .btn-refresh-tier { padding: 8px 16px; background: rgba(52, 211, 153, 0.1); border: 1px solid var(--green); color: var(--green); border-radius: 4px; font-size: 0.9rem; cursor: pointer; transition: 0.2s; font-weight: bold; flex: 1; max-width: 200px; text-align: center; }
+        .btn-refresh-tier:hover { background: rgba(52, 211, 153, 0.2); }
+        .btn-refresh-tier:disabled { opacity: 0.5; cursor: not-allowed; border-color: #4b5563; color: #9ca3af; }
+        
+        .btn-find-new { padding: 8px 16px; background: rgba(96, 165, 250, 0.1); border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; font-size: 0.9rem; cursor: pointer; transition: 0.2s; font-weight: bold; flex: 1; max-width: 200px; text-align: center; }
+        .btn-find-new:hover { background: rgba(96, 165, 250, 0.2); }
+        .btn-find-new:disabled { opacity: 0.5; cursor: not-allowed; border-color: #4b5563; color: #9ca3af; }
+
+        .signal-content { 
+            display: flex; 
+            align-items: flex-start; 
+            justify-content: space-between; 
+            gap: 20px; 
+            flex-wrap: wrap; 
+            background: #0f1115; 
+            padding: 20px; 
+            border-radius: 8px; 
+            border: 1px solid #1f2937;
+            margin-top: 15px;
+            transition: all 0.2s;
+        }
+        .signal-content.scanning {
+            animation: pulse-border 1.5s infinite;
+            border-color: var(--green);
+            box-shadow: 0 0 15px rgba(52,211,153,0.3);
+        }
+        @keyframes pulse-border {
+            0% { border-color: var(--green); box-shadow: 0 0 0 0 rgba(52,211,153,0.4); }
+            70% { border-color: var(--green); box-shadow: 0 0 0 10px rgba(52,211,153,0); }
+            100% { border-color: var(--green); box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+        }
+        .signal-token-info { 
+            flex: 2; 
+            min-width: 200px;
+        }
+        .signal-metrics { 
+            flex: 3; 
+            display: flex; 
+            gap: 15px; 
+            flex-wrap: wrap;
+            justify-content: flex-start;
+        }
+        .signal-metric { 
+            background: #1f2937; 
+            padding: 10px 18px; 
+            border-radius: 8px; 
+            min-width: 100px;
+            text-align: center;
+        }
+        .signal-metric-label { 
+            color: #9ca3af; 
+            font-size: 0.7rem; 
+            text-transform: uppercase; 
+            margin-bottom: 4px; 
+            letter-spacing: 0.5px;
+        }
+        .signal-metric-val { 
+            color: var(--green); 
+            font-weight: bold; 
+            font-size: 1rem; 
+            word-break: break-word;
+        }
+        .btn-signal-action { 
+            background: var(--green); 
+            color: #000; 
+            border: none; 
+            padding: 10px 24px; 
+            border-radius: 6px; 
+            font-weight: 800; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            font-size: 0.9rem; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            white-space: nowrap;
+            align-self: center;
+        }
+        .btn-signal-action:hover { transform: translateY(-2px); box-shadow: 0 0 20px rgba(52, 211, 153, 0.4); }
+        .signal-token-name { font-size: 1.3rem; font-weight: bold; color: #fff; margin-bottom: 8px; word-break: break-word; }
+        .signal-token-ca { font-family: monospace; color: #9ca3af; font-size: 0.75rem; background: #000; padding: 6px 10px; border-radius: 4px; border: 1px solid #333; cursor: pointer; transition: 0.2s; user-select: all; width: fit-content; }
+        .signal-token-ca:hover { border-color: var(--accent); color: var(--accent); }
+
+        .help-icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: #374151; color: #9ca3af; border-radius: 50%; font-size: 12px; font-weight: bold; margin-left: 5px; cursor: pointer; border: 1px solid #4b5563; transition: all 0.2s; }
+        .help-icon:hover { background: #4b5563; color: var(--accent); transform: scale(1.1); }
+
+        .tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 25px; justify-content: center; }
+        .tab-btn { padding: 12px 24px; background: var(--card); border: 1px solid var(--border); color: var(--text); cursor: pointer; border-radius: 6px; font-weight: 600; transition: all 0.25s; }
+        .tab-btn:hover { background: #1f2937; transform: translateY(-1px); }
+        .tab-btn.active { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 0 16px var(--glow); }
+
+        .info-btn { padding: 12px 24px; background: rgba(251,191,36,0.1); border: 1px solid var(--yellow); color: var(--yellow); cursor: pointer; border-radius: 6px; font-weight: 600; transition: all 0.25s; margin-left: auto; }
+        .info-btn:hover { background: rgba(251,191,36,0.2); transform: translateY(-1px); }
+
+        .search-bar { display: flex; gap: 12px; margin-bottom: 30px; max-width: 600px; margin-left: auto; margin-right: auto; }
+        #search-input { flex: 1; padding: 14px 16px; background: #1f2937; border: 1px solid var(--border); color: var(--text); border-radius: 6px; font-size: 1rem; }
+        #search-btn { padding: 0 28px; background: var(--accent); color: #000; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        #search-btn:hover { background: #3b82f6; transform: scale(1.03); }
+
+        /* Enhanced Table Wrapper with Loading Overlay */
+        .table-wrapper { overflow-x: auto; background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); position: relative; min-height: 250px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: normal; word-break: break-word; }
+        th { background: #1f2937; color: #e5e7eb; font-weight: 600; position: sticky; top: 0; z-index: 2; }
+        tr { cursor: pointer; }
+        tr:hover { background: #1e293b; }
+
+        .table-loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20, 23, 28, 0.85); z-index: 10; display: none; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(4px); }
+        .spinner { width: 50px; height: 50px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .loading-text { color: var(--accent); font-weight: bold; letter-spacing: 1px; animation: pulse 1.5s infinite; font-size: 1.1rem; text-transform: uppercase; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .table-progress-container { width: 250px; background: #1f2937; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 15px; border: 1px solid var(--border); }
+        .table-progress-bar { height: 100%; background: var(--green); width: 0%; transition: width 0.3s ease; box-shadow: 0 0 8px var(--green); }
+
+        td:first-child { min-width: 40px; }
+        td:nth-child(2) { min-width: 140px; }
+        td:nth-child(3) { min-width: 90px; }
+        td:nth-child(4) { min-width: 130px; }
+        td:nth-child(5) { min-width: 120px; }
+        td:nth-child(6) { min-width: 120px; }
+        td:nth-child(7) { min-width: 130px; }
+        td:nth-child(8) { min-width: 130px; }
+        td:nth-child(9) { min-width: 70px; }
+        td:nth-child(10) { min-width: 70px; }
+        td:nth-child(11) { min-width: 80px; }
+        td:last-child { min-width: 90px; }
+
+        .view-btn { background: var(--accent); color: #000; border: none; padding: 6px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; pointer-events: auto; white-space: nowrap; }
+        .view-btn:hover { background: #3b82f6; transform: scale(1.05); }
+        .status-low { color: var(--green); font-weight: 600; }
+        .status-med { color: var(--yellow); }
+        .status-high { color: var(--red); font-weight: 600; }
+        .source-badge { background: #2d3748; padding: 6px 10px; border-radius: 20px; font-size: 0.8rem; color: #cbd5e0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #4a5568; max-width: 200px; font-weight: 600; letter-spacing: 0.5px; }
+
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; z-index: 9999; overflow-y: auto; backdrop-filter: blur(8px); }
+        .modal-box { background: var(--card); border: 1px solid var(--accent); border-radius: 12px; width: 90%; max-width: 860px; max-height: 92vh; overflow-y: auto; padding: 32px; position: relative; box-shadow: 0 0 50px rgba(96,165,250,0.35); }
+        .modal-close { position: absolute; top: 18px; right: 24px; font-size: 32px; color: var(--text); cursor: pointer; transition: all 0.2s; }
+        .modal-close:hover { color: var(--accent); transform: rotate(90deg); }
+        .modal-title { color: var(--accent); margin-bottom: 24px; font-size: 1.8rem; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 30px; background: #1f2937; padding: 20px; border-radius: 12px; margin-bottom: 24px; }
+        .detail-item { display: flex; justify-content: space-between; border-bottom: 1px dashed #374151; padding: 8px 0; align-items: center; }
+        .detail-label { color: #9ca3af; font-weight: 400; display: flex; align-items: center; gap: 6px; }
+        .detail-value { font-weight: 500; color: var(--accent); text-align: right; word-break: break-word; max-width: 250px; }
+        .safety-score { background: #111827; border-radius: 16px; padding: 24px; margin: 24px 0; text-align: center; border: 1px solid var(--border); }
+        .score-number { font-size: 3.5rem; font-weight: 800; color: var(--accent); line-height: 1; }
+        .rating-box { background: rgba(96,165,250,0.15); border-radius: 40px; padding: 16px 32px; display: inline-flex; align-items: center; justify-content: center; margin-top: 12px; font-size: 1.6rem; font-weight: 700; border: 1px solid var(--accent); color: var(--accent); text-decoration: none; transition: 0.2s; }
+        .rating-box:hover { transform: scale(1.02); }
+        .rating-buy { color: var(--green); border-color: var(--green); background: rgba(52,211,153,0.1); }
+        .rating-caution { color: var(--yellow); border-color: var(--yellow); background: rgba(251,191,36,0.1); }
+        .rating-dont { color: var(--red); border-color: var(--red); background: rgba(248,113,113,0.1); }
+        .close-button { margin-top: 28px; padding: 12px 40px; background: var(--accent); color: #000; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 1.1rem; width: 100%; }
+
+        .help-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px); }
+        .help-modal-box { background: var(--card); border: 1px solid var(--accent); border-radius: 12px; width: 90%; max-width: 500px; padding: 30px; position: relative; }
+        .help-modal-close { position: absolute; top: 15px; right: 20px; font-size: 28px; color: var(--text); cursor: pointer; }
+        .help-modal-close:hover { color: var(--accent); }
+        .help-modal-title { color: var(--accent); font-size: 1.6rem; margin-bottom: 20px; padding-right: 30px; }
+        .help-modal-content { color: var(--text); font-size: 1.1rem; line-height: 1.6; white-space: pre-wrap; }
+
+        .modal[id="about-modal"], .modal[id="settings-modal"] { z-index: 10001; }
+        .modal-box[id="about-modal-box"], .modal-box[id="settings-modal-box"] { max-width: 800px; }
+
+        .settings-form-group { margin-bottom: 20px; }
+        .settings-form-group label { display: block; color: var(--accent); margin-bottom: 8px; font-weight: bold; }
+        .settings-form-group input, .settings-form-group select { width: 100%; background: #0f1115; border: 1px solid #374151; color: #fff; padding: 12px 16px; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }
+        .settings-form-group input:focus, .settings-form-group select:focus { outline: none; border-color: var(--accent); }
+        .settings-hint { display: block; color: #9ca3af; font-size: 0.85rem; margin-top: 6px; }
+
+        /* Filter group styles */
+        .filter-group { margin-bottom: 20px; border-top: 1px solid var(--border); padding-top: 15px; }
+        .filter-title { color: var(--accent); font-weight: bold; margin-bottom: 12px; font-size: 1rem; }
+        .filter-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+        .filter-row label { flex: 0 0 100px; margin-bottom: 0; }
+        .filter-row input, .filter-row select { flex: 1; min-width: 120px; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+        .checkbox-group label { display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer; }
+        .help-icon-small { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #374151; color: #9ca3af; border-radius: 50%; font-size: 10px; font-weight: bold; margin-left: 4px; cursor: pointer; }
+        .filter-note { font-size: 0.8rem; color: #9ca3af; margin-top: 5px; }
+
+        /* Full iframe container for PnL */
+        .iframe-container { width: 100%; height: 600px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 20px; }
+        .iframe-container iframe { width: 100%; height: 100%; border: none; }
+
+        #log { background: #111827; border: 1px solid #374151; border-radius: 8px; padding: 16px; height: 180px; overflow-y: auto; font-size: 0.9rem; color: #9ca3af; margin-top: 30px; }
+        .empty-message { text-align: center; padding: 80px 20px; color: #6b7280; font-size: 1.15rem; }
+        .sol-price { color: var(--yellow); font-size: 0.9em; }
+        .loading { text-align: center; padding: 40px; color: var(--accent); }
+        @media (max-width: 768px) {
+            .search-bar { flex-direction: column; }
+            #search-btn { width: 100%; padding: 14px; }
+            .modal-box { padding: 24px; }
+            .detail-grid { grid-template-columns: 1fr; }
+            .signal-content { flex-direction: column; align-items: stretch; }
+            .signal-metrics { justify-content: space-between; width: 100%; }
+            .btn-signal-action { width: 100%; text-align: center; margin-top: 10px; }
+            .info-btn { margin-left: 0; width: 100%; }
+            .action-btns { flex-direction: row; }
+            .btn-refresh-tier, .btn-find-new { max-width: none; }
+            .iframe-container { height: 400px; }
+            .top-bar-controls { flex-direction: column; align-items: center; justify-content: center; }
+            .settings-btn { margin-bottom: 10px; width: 100%; justify-content: center; }
+            .signal-metric { flex: 1; min-width: 80px; }
+            .signal-type-toggle { justify-content: center; margin-top: 10px; }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id="toast-container"&gt;&lt;/div&gt;
+
+    &lt;div class="container"&gt;
+        
+        &lt;div class="top-bar-controls"&gt;
+            &lt;h1&gt;Sentinel&lt;/h1&gt;
+            
+            &lt;button class="settings-btn" id="btn-settings"&gt;⚙️ Settings&lt;/button&gt;
+
+            &lt;div class="index-bar" id="greed-fear-container"&gt;
+                &lt;span class="index-label"&gt;
+                    &lt;span&gt;📊 Greed &amp; Fear&lt;/span&gt;
+                    &lt;span class="help-icon" data-help="greed-fear"&gt;?&lt;/span&gt;
+                &lt;/span&gt;
+                &lt;span class="index-value" id="greed-value"&gt;--&lt;/span&gt;
+                &lt;div class="index-meter"&gt;
+                    &lt;div class="index-fill" id="greed-fill" style="width:0%"&gt;&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class="signal-banner" id="signal-banner"&gt;
+            &lt;div class="signal-header"&gt;
+                &lt;span class="signal-title"&gt;🔥 ALPHA SIGNALS &lt;span id="signal-countdown"&gt;(--:--)&lt;/span&gt;&lt;/span&gt;
+                &lt;span class="signal-status" id="signal-status"&gt;Initializing scanner...&lt;/span&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="signal-tier-tabs"&gt;
+                &lt;button class="sig-tab active" data-tier="NEW"&gt;New (&lt;10k)&lt;/button&gt;
+                &lt;button class="sig-tab" data-tier="LOW"&gt;Low (&lt;50k)&lt;/button&gt;
+                &lt;button class="sig-tab" data-tier="MID"&gt;Mid (&lt;150k)&lt;/button&gt;
+                &lt;button class="sig-tab" data-tier="TRANSITION"&gt;Transition (150-500k)&lt;/button&gt;
+                &lt;button class="sig-tab" data-tier="HIGH"&gt;High (&gt;500k)&lt;/button&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="signal-type-toggle"&gt;
+                &lt;button class="type-btn active" data-type="run"&gt;🚀 Most Likely to Run&lt;/button&gt;
+                &lt;button class="type-btn" data-type="hodl"&gt;🛡️ Safe to HODL&lt;/button&gt;
+            &lt;/div&gt;
+
+            &lt;div class="action-btns"&gt;
+                &lt;button class="btn-refresh-tier" id="btn-refresh-tier"&gt;🔍 Scan Tier&lt;/button&gt;
+                &lt;button class="btn-find-new" id="btn-find-new"&gt;⏭️ Find New Signal&lt;/button&gt;
+            &lt;/div&gt;
+
+            &lt;div class="signal-content" id="signal-content"&gt;
+                &lt;div style="color: #6b7280; font-style: italic; width: 100%; text-align: center;"&gt;Scanning blockchain for high-probability setups...&lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class="tabs"&gt;
+            &lt;button class="tab-btn active" data-tab="new"&gt;🆕 New Tokens&lt;/button&gt;
+            &lt;button class="tab-btn" data-tab="volume"&gt;📊 24h Volume&lt;/button&gt;
+            &lt;button class="tab-btn" data-tab="mcap"&gt;💰 Market Cap&lt;/button&gt;
+            &lt;button class="tab-btn" data-tab="trending"&gt;🔥 Trending&lt;/button&gt;
+            &lt;button class="tab-btn" data-tab="boosted"&gt;🚀 Recently Boosted&lt;/button&gt;
+            &lt;button class="info-btn" id="btn-about"&gt;ℹ️ About &amp; Disclaimer&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div class="search-bar"&gt;
+            &lt;input id="search-input" type="text" placeholder="Paste CA or Wallet Address for PnL..."&gt;
+            &lt;button id="search-btn"&gt;Search&lt;/button&gt;
+        &lt;/div&gt;
+        
+        &lt;div class="table-wrapper"&gt;
+            &lt;div class="table-loading-overlay" id="table-loading-overlay"&gt;
+                &lt;div class="spinner"&gt;&lt;/div&gt;
+                &lt;div class="loading-text" id="loading-status-text"&gt;AGGREGATING DEEP BATCHES...&lt;/div&gt;
+                &lt;div class="table-progress-container"&gt;
+                    &lt;div class="table-progress-bar" id="table-progress-bar"&gt;&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;table id="token-table"&gt;
+                &lt;thead&gt;
+                    &lt;tr&gt;
+                        &lt;th&gt;# &lt;span class="help-icon" data-help="rank"&gt;?&lt;/span&gt;&lt;/th&gt;
+                        &lt;th&gt;Token &lt;span class="help-icon" data-help="token"&gt;?&lt;/span&gt;&lt;/th&gt;
+                        &lt;th&gt;Symbol &lt;span class="help-icon" data-help="symbol"&gt;?&lt;/span&gt;&lt;/th&gt;
+                        &lt;th&gt;Launchpad / DEX &lt;span class="help-icon" data-help="source"&gt;?&lt;/span&gt;&lt;/th&gt;
+                        &lt;th&gt;Price (USD) &lt;span class="help-icon" data-help="price-usd"&gt;?&lt;/span&gt;&lt;/th&gt;
+                        &lt;th&gt;Price (SOL) &lt;span class="help-icon" data-help="price-sol"&gt;?&lt;/span&gt;&lt;/th&gt;
+                        &lt;th&gt;24h Vol &lt;span class="help-icon" data-help="volume"&gt;?&lt;/span&gt;&lt;/th&gt;
+                        &lt;th&gt;MCap &lt;span class="help-icon" data-help="mcap"&gt;?&lt;/span&gt;&lt;/th&gt;
+                        &lt;th&gt;Safety &lt;span class="help-icon" data-help="safety"&gt;?&lt;/span&gt;&lt;/th&gt;
+                        &lt;th&gt;Rug % &lt;span class="help-icon" data-help="rug"&gt;?&lt;/span&gt;&lt;/th&gt;
+                        &lt;th&gt;Risk &lt;span class="help-icon" data-help="risk"&gt;?&lt;/span&gt;&lt;/th&gt;
+                        &lt;th&gt;&lt;/th&gt;
+                    &lt;/thead&gt;
+                &lt;tbody&gt;&lt;/tbody&gt;
+             &lt;/table&gt;
+            &lt;div id="empty-state" class="empty-message" style="display:none;"&gt;
+                No real token data available from APIs.&lt;br&gt;
+                &lt;small&gt;Birdeye or DexScreener may be rate-limited or down. Try again later.&lt;/small&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div id="log"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class="modal" id="detail-modal"&gt;
+        &lt;div class="modal-box"&gt;
+            &lt;div class="modal-close"&gt;×&lt;/div&gt;
+            &lt;h2 class="modal-title"&gt;🔍 Advanced safety report&lt;/h2&gt;
+            &lt;div id="modal-body"&gt;&lt;/div&gt;
+            &lt;button class="close-button"&gt;Close&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class="help-modal" id="help-modal"&gt;
+        &lt;div class="help-modal-box"&gt;
+            &lt;div class="help-modal-close"&gt;×&lt;/div&gt;
+            &lt;h3 class="help-modal-title" id="help-modal-title"&gt;Help&lt;/h3&gt;
+            &lt;div class="help-modal-content" id="help-modal-content"&gt;&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class="modal" id="settings-modal"&gt;
+        &lt;div class="modal-box" id="settings-modal-box" style="max-width: 700px;"&gt;
+            &lt;div class="modal-close" id="settings-close"&gt;×&lt;/div&gt;
+            &lt;h2 class="modal-title"&gt;⚙️ Scanner Settings&lt;/h2&gt;
+            
+            &lt;div class="settings-form-group"&gt;
+                &lt;label for="batch-select"&gt;Batch Fetch (Scanner Depth):&lt;/label&gt;
+                &lt;select id="batch-select"&gt;
+                    &lt;option value="5"&gt;5 Batches (Fastest, Shallow)&lt;/option&gt;
+                    &lt;option value="10" selected&gt;10 Batches (Recommended)&lt;/option&gt;
+                    &lt;option value="15"&gt;15 Batches (Deep)&lt;/option&gt;
+                    &lt;option value="20"&gt;20 Batches (Deeper)&lt;/option&gt;
+                    &lt;option value="25"&gt;25 Batches&lt;/option&gt;
+                    &lt;option value="30"&gt;30 Batches (Slowest, Deepest)&lt;/option&gt;
+                &lt;/select&gt;
+                &lt;span class="settings-hint"&gt;Higher values find more hidden tokens but take longer to load. (1 Batch = 50 Tokens)&lt;/span&gt;
+            &lt;/div&gt;
+            
+            &lt;div class="settings-form-group"&gt;
+                &lt;label for="rpc-input"&gt;Premium RPC URL (Optional):&lt;/label&gt;
+                &lt;input type="password" id="rpc-input" placeholder="https://mainnet.helius-rpc.com/..." /&gt;
+                &lt;span class="settings-hint"&gt;Used for deep wallet evaluation. Kept completely private in local storage.&lt;/span&gt;
+            &lt;/div&gt;
+
+            &lt;!-- Signal Filters Section --&gt;
+            &lt;div class="filter-group"&gt;
+                &lt;div class="filter-title"&gt;🔍 Signal Filters (apply to both signal types)&lt;/div&gt;
+                &lt;div class="filter-row"&gt;
+                    &lt;label&gt;Age (hours)&lt;/label&gt;
+                    &lt;input type="number" id="filter-age-min" placeholder="Min" step="0.1" value="0"&gt;
+                    &lt;span&gt;—&lt;/span&gt;
+                    &lt;input type="number" id="filter-age-max" placeholder="Max" step="0.1" value=""&gt;
+                    &lt;span class="help-icon-small" data-help="age"&gt;?&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class="filter-row"&gt;
+                    &lt;label&gt;Volume (USD)&lt;/label&gt;
+                    &lt;input type="number" id="filter-vol-min" placeholder="Min" step="1000" value="0"&gt;
+                    &lt;span&gt;—&lt;/span&gt;
+                    &lt;input type="number" id="filter-vol-max" placeholder="Max" step="1000" value=""&gt;
+                    &lt;span class="help-icon-small" data-help="volume"&gt;?&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class="filter-row"&gt;
+                    &lt;label&gt;Holder Concentration&lt;/label&gt;
+                    &lt;input type="number" id="filter-holder-max" placeholder="Max Top 20 %" step="1" value="100" style="width: 120px;"&gt;
+                    &lt;span class="help-icon-small" data-help="holder"&gt;?&lt;/span&gt;
+                    &lt;span style="margin-left: 10px; font-size:0.8rem; color:#9ca3af;"&gt;(lower = better)&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class="filter-row"&gt;
+                    &lt;label&gt;Graduated (Bonded)&lt;/label&gt;
+                    &lt;label style="display: flex; align-items: center; gap: 8px; margin-left: 0;"&gt;
+                        &lt;input type="checkbox" id="filter-graduated"&gt; Only Raydium (bonded from Pump.fun)
+                    &lt;/label&gt;
+                    &lt;span class="help-icon-small" data-help="graduated"&gt;?&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class="filter-row"&gt;
+                    &lt;label&gt;Platforms&lt;/label&gt;
+                    &lt;div class="checkbox-group" id="platform-checkboxes"&gt;
+                        &lt;label&gt;&lt;input type="checkbox" value="pump"&gt; Pump.fun&lt;/label&gt;
+                        &lt;label&gt;&lt;input type="checkbox" value="raydium"&gt; Raydium&lt;/label&gt;
+                        &lt;label&gt;&lt;input type="checkbox" value="moonshot"&gt; Moonshot&lt;/label&gt;
+                        &lt;label&gt;&lt;input type="checkbox" value="orca"&gt; Orca&lt;/label&gt;
+                        &lt;label&gt;&lt;input type="checkbox" value="meteora"&gt; Meteora&lt;/label&gt;
+                        &lt;label&gt;&lt;input type="checkbox" value="heaven"&gt; Heaven&lt;/label&gt;
+                        &lt;label&gt;&lt;input type="checkbox" value="bags"&gt; Bags&lt;/label&gt;
+                        &lt;label&gt;&lt;input type="checkbox" value="other"&gt; Other&lt;/label&gt;
+                    &lt;/div&gt;
+                    &lt;span class="settings-hint"&gt;Leave all unchecked to include all platforms.&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class="filter-row"&gt;
+                    &lt;label&gt;Apply to Table&lt;/label&gt;
+                    &lt;label style="display: flex; align-items: center; gap: 8px;"&gt;
+                        &lt;input type="checkbox" id="filter-table"&gt; Also apply filters to token list table
+                    &lt;/label&gt;
+                    &lt;span class="help-icon-small" data-help="table-filters"&gt;?&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class="filter-note"&gt;⚠️ Holder filter may slow down scanning. Tokens failing holder check are skipped after other filters.&lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;button class="close-button" id="settings-btn-close" style="margin-top: 30px;"&gt;Save &amp; Close&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class="modal" id="about-modal"&gt;
+        &lt;div class="modal-box" id="about-modal-box"&gt;
+            &lt;div class="modal-close" id="about-close"&gt;×&lt;/div&gt;
+            &lt;h2 class="modal-title"&gt;ℹ️ About Sentinel &amp; Disclaimer&lt;/h2&gt;
+            &lt;div style="color: var(--text); line-height: 1.6; font-size: 1.05rem; overflow-y: auto; max-height: 60vh; padding-right: 15px;"&gt;
+                &lt;h3 style="color: var(--accent); margin-top: 0;"&gt;⚠️ General Disclaimer&lt;/h3&gt;
+                &lt;p style="color: var(--red); font-weight: bold; background: rgba(248,113,113,0.1); padding: 10px; border-radius: 6px; border: 1px solid var(--red);"&gt;This tool is for educational and informational purposes only. It is NOT financial advice.&lt;/p&gt;
+                &lt;p&gt;Cryptocurrency trading, especially low-market-cap tokens on decentralized exchanges, involves extreme risk. The vast majority of new tokens are highly volatile and may be subject to malicious practices (e.g., "rug pulls", honeypots). Always Do Your Own Research (DYOR). You are solely responsible for your trading decisions.&lt;/p&gt;
+
+                &lt;h3 style="color: var(--accent); margin-top: 25px;"&gt;🔍 How Sentinel Works (Transparency)&lt;/h3&gt;
+                &lt;p&gt;Sentinel aggregates public blockchain data to provide a consolidated view of token metrics. Here is exactly how the data is sourced and calculated:&lt;/p&gt;
+                &lt;ul style="padding-left: 20px; margin-bottom: 20px;"&gt;
+                    &lt;li style="margin-bottom: 8px;"&gt;&lt;strong&gt;Data Sources &amp; Deep Batch Scanning:&lt;/strong&gt; Token prices, volume, liquidity, and market cap are fetched in real-time from DexScreener and Birdeye. The engine executes a user-defined number of sequential batch fetches (default 10 batches of 50 tokens each) combining both sources. When scanning for signals, batches are processed one by one until a qualifying token is found, ensuring efficient use of API calls.&lt;/li&gt;
+                    &lt;li style="margin-bottom: 8px;"&gt;&lt;strong&gt;Safety Scores &amp; Open-Source Heuristics:&lt;/strong&gt; Primary scores are sourced from the &lt;strong&gt;Solsniffer API&lt;/strong&gt;. If Solsniffer is unreachable, Sentinel uses a fallback &lt;em&gt;Heuristic Algorithm&lt;/em&gt; integrating open-source analytic principles. Holder concentration is evaluated securely using the premium &lt;strong&gt;QuickNode RPC&lt;/strong&gt; endpoints via direct on-chain querying. The application allows users to supply their own premium Solana RPC URL via Settings (saved securely in local browser storage only) to bypass public rate limits.&lt;/li&gt;
+                    &lt;li style="margin-bottom: 8px;"&gt;&lt;strong&gt;Greed &amp; Fear Index:&lt;/strong&gt; Fetches live, daily market sentiment data directly from the &lt;strong&gt;Alternative.me Crypto Fear &amp; Greed API&lt;/strong&gt;.&lt;/li&gt;
+                    &lt;li style="margin-bottom: 8px;"&gt;&lt;strong&gt;Alpha Signals – Dual Modes:&lt;/strong&gt; For each market cap tier, Sentinel now provides two distinct signals: &lt;strong&gt;🚀 Most Likely to Run&lt;/strong&gt; (optimized for short-term hype – favors high volume, momentum, and very low age) and &lt;strong&gt;🛡️ Safe to HODL&lt;/strong&gt; (optimized for longer-term safety – favors high liquidity, low holder concentration, and established age). The toggle lets you switch between them. Both respect your filter settings.&lt;/li&gt;
+                    &lt;li style="margin-bottom: 8px;"&gt;&lt;strong&gt;Sequential Scanning &amp; Animation:&lt;/strong&gt; When scanning for signals, the scanner processes one batch at a time and the signal box pulses with a green animation to indicate live search. This gives real‑time feedback while the system searches for the best candidate.&lt;/li&gt;
+                    &lt;li style="margin-bottom: 8px;"&gt;&lt;strong&gt;Enhanced Token Analysis:&lt;/strong&gt; The modal now shows additional tokenomics: total holder count (estimated from Solsniffer if available), top 20 wallet concentration, a &lt;strong&gt;clone likelihood score&lt;/strong&gt; (0–100) that detects potential copy‑cat tokens based on name patterns, and mint authority status (if RPC data is accessible).&lt;/li&gt;
+                    &lt;li style="margin-bottom: 8px;"&gt;&lt;strong&gt;Recently Boosted List:&lt;/strong&gt; A dedicated tab showing tokens that have experienced significant momentum in the last 6 hours, measured by volume-to-market-cap ratio and price increase. Ideal for spotting early runners.&lt;/li&gt;
+                    &lt;li style="margin-bottom: 8px;"&gt;&lt;strong&gt;Wallet PnL / Search:&lt;/strong&gt; The search bar doubles as a robust Contract Address checker and a live Wallet Portfolio PnL visualizer directly rendering Birdeye's interface via iframe.&lt;/li&gt;
+                    &lt;li style="margin-bottom: 8px;"&gt;&lt;strong&gt;BubbleMaps Integration:&lt;/strong&gt; Visual wallet mapping analysis is available directly inside the token analysis modal. Clicking the link will securely open BubbleMaps in a new external browser tab.&lt;/li&gt;
+                &lt;/ul&gt;
+
+                &lt;h3 style="color: var(--accent); margin-top: 25px;"&gt;📖 Robust Help Guide&lt;/h3&gt;
+                &lt;p&gt;&lt;strong&gt;Tabs Navigation:&lt;/strong&gt;&lt;/p&gt;
+                &lt;ul style="padding-left: 20px; margin-bottom: 20px;"&gt;
+                    &lt;li&gt;&lt;strong&gt;New Tokens:&lt;/strong&gt; Sorts the aggregated list by the newest pair creation date.&lt;/li&gt;
+                    &lt;li&gt;&lt;strong&gt;24h Volume:&lt;/strong&gt; Sorts by highest trading volume over the last 24 hours.&lt;/li&gt;
+                    &lt;li&gt;&lt;strong&gt;Market Cap:&lt;/strong&gt; Sorts by Fully Diluted Valuation (FDV).&lt;/li&gt;
+                    &lt;li&gt;&lt;strong&gt;Trending:&lt;/strong&gt; A custom algorithmic sort blending volume (70%) and liquidity (30%).&lt;/li&gt;
+                    &lt;li&gt;&lt;strong&gt;Recently Boosted:&lt;/strong&gt; Sorts by a boost score = (24h volume / market cap) * (1 + max(0, 6h price change / 100)). This highlights tokens with sudden interest and upward momentum.&lt;/li&gt;
+                &lt;/ul&gt;
+                &lt;p&gt;&lt;strong&gt;Filters &amp; Settings:&lt;/strong&gt; Use the Settings gear to adjust batch depth, provide a custom RPC, and set filters for age, volume, holder concentration, graduation, and platforms. Optionally apply the same filters to the main token table.&lt;/p&gt;
+                &lt;p&gt;&lt;strong&gt;Using the Table:&lt;/strong&gt; Click any row or the "View" button to open the Advanced Safety Report, providing a deeper dive into the token's metrics and risk profile. Hover over the &lt;code&gt;?&lt;/code&gt; icons in the table header for specific metric definitions.&lt;/p&gt;
+                &lt;p&gt;&lt;strong&gt;Clone Detection:&lt;/strong&gt; The clone likelihood algorithm analyses the token name and symbol for patterns commonly seen in scam tokens (e.g., repeated words, misspellings, excessive emojis, etc.). A high score suggests the token may be a copy‑cat or low‑effort creation – proceed with caution.&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;button class="close-button" id="about-btn-close" style="margin-top: 20px;"&gt;I Understand&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        (function() {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+            function init() {
+                const logEl = document.getElementById('log');
+                const tableBody = document.getElementById('token-table').querySelector('tbody');
+                const emptyState = document.getElementById('empty-state');
+                const modal = document.getElementById('detail-modal');
+                const modalBody = document.getElementById('modal-body');
+                const helpModal = document.getElementById('help-modal');
+                const helpTitle = document.getElementById('help-modal-title');
+                const helpContent = document.getElementById('help-modal-content');
+                
+                const aboutModal = document.getElementById('about-modal');
+                const btnAbout = document.getElementById('btn-about');
+                const aboutClose = document.getElementById('about-close');
+                const aboutBtnClose = document.getElementById('about-btn-close');
+
+                const settingsModal = document.getElementById('settings-modal');
+                const btnSettings = document.getElementById('btn-settings');
+                const settingsClose = document.getElementById('settings-close');
+                const settingsBtnClose = document.getElementById('settings-btn-close');
+
+                const batchSelect = document.getElementById('batch-select');
+                const rpcInput = document.getElementById('rpc-input');
+                
+                // Filter inputs
+                const filterAgeMin = document.getElementById('filter-age-min');
+                const filterAgeMax = document.getElementById('filter-age-max');
+                const filterVolMin = document.getElementById('filter-vol-min');
+                const filterVolMax = document.getElementById('filter-vol-max');
+                const filterHolderMax = document.getElementById('filter-holder-max');
+                const filterGraduated = document.getElementById('filter-graduated');
+                const platformCheckboxes = document.querySelectorAll('#platform-checkboxes input[type="checkbox"]');
+                const filterTableCheckbox = document.getElementById('filter-table');
+                
+                let userBatchLimit = parseInt(localStorage.getItem('sentinel_batch_limit')) || 10;
+                let userRpcUrl = localStorage.getItem('sentinel_rpc_url') || 'https://warmhearted-burned-water.solana-mainnet.quiknode.pro/99bf1f368b070c7540869e1b64ac736ebbfb7d28/';
+                
+                // Load filters from localStorage
+                let filterSettings = {
+                    ageMin: parseFloat(localStorage.getItem('sentinel_filter_age_min')) || 0,
+                    ageMax: parseFloat(localStorage.getItem('sentinel_filter_age_max')) || null,
+                    volMin: parseFloat(localStorage.getItem('sentinel_filter_vol_min')) || 0,
+                    volMax: parseFloat(localStorage.getItem('sentinel_filter_vol_max')) || null,
+                    holderMax: parseFloat(localStorage.getItem('sentinel_filter_holder_max')) || 100,
+                    graduatedOnly: localStorage.getItem('sentinel_filter_graduated') === 'true',
+                    platforms: JSON.parse(localStorage.getItem('sentinel_filter_platforms')) || [],
+                    applyToTable: localStorage.getItem('sentinel_filter_table') === 'true'
+                };
+                
+                if (userBatchLimit) batchSelect.value = userBatchLimit;
+                if (userRpcUrl &amp;&amp; userRpcUrl !== 'https://warmhearted-burned-water.solana-mainnet.quiknode.pro/99bf1f368b070c7540869e1b64ac736ebbfb7d28/') {
+                    rpcInput.value = userRpcUrl;
+                }
+                
+                // Set filter UI values
+                filterAgeMin.value = filterSettings.ageMin;
+                filterAgeMax.value = filterSettings.ageMax !== null ? filterSettings.ageMax : '';
+                filterVolMin.value = filterSettings.volMin;
+                filterVolMax.value = filterSettings.volMax !== null ? filterSettings.volMax : '';
+                filterHolderMax.value = filterSettings.holderMax;
+                filterGraduated.checked = filterSettings.graduatedOnly;
+                filterTableCheckbox.checked = filterSettings.applyToTable;
+                platformCheckboxes.forEach(cb =&gt; {
+                    cb.checked = filterSettings.platforms.includes(cb.value);
+                });
+                
+                function saveSettings() {
+                    userBatchLimit = parseInt(batchSelect.value);
+                    localStorage.setItem('sentinel_batch_limit', userBatchLimit);
+                    
+                    const inputRpc = rpcInput.value.trim();
+                    if(inputRpc) {
+                        userRpcUrl = inputRpc;
+                        localStorage.setItem('sentinel_rpc_url', userRpcUrl);
+                    } else {
+                        userRpcUrl = 'https://warmhearted-burned-water.solana-mainnet.quiknode.pro/99bf1f368b070c7540869e1b64ac736ebbfb7d28/';
+                        localStorage.removeItem('sentinel_rpc_url');
+                    }
+                    
+                    // Save filters
+                    const ageMinVal = parseFloat(filterAgeMin.value);
+                    filterSettings.ageMin = isNaN(ageMinVal) ? 0 : ageMinVal;
+                    const ageMaxVal = parseFloat(filterAgeMax.value);
+                    filterSettings.ageMax = isNaN(ageMaxVal) ? null : ageMaxVal;
+                    const volMinVal = parseFloat(filterVolMin.value);
+                    filterSettings.volMin = isNaN(volMinVal) ? 0 : volMinVal;
+                    const volMaxVal = parseFloat(filterVolMax.value);
+                    filterSettings.volMax = isNaN(volMaxVal) ? null : volMaxVal;
+                    const holderMaxVal = parseFloat(filterHolderMax.value);
+                    filterSettings.holderMax = isNaN(holderMaxVal) ? 100 : holderMaxVal;
+                    filterSettings.graduatedOnly = filterGraduated.checked;
+                    const selectedPlatforms = Array.from(platformCheckboxes).filter(cb =&gt; cb.checked).map(cb =&gt; cb.value);
+                    filterSettings.platforms = selectedPlatforms;
+                    filterSettings.applyToTable = filterTableCheckbox.checked;
+                    
+                    localStorage.setItem('sentinel_filter_age_min', filterSettings.ageMin);
+                    localStorage.setItem('sentinel_filter_age_max', filterSettings.ageMax !== null ? filterSettings.ageMax : '');
+                    localStorage.setItem('sentinel_filter_vol_min', filterSettings.volMin);
+                    localStorage.setItem('sentinel_filter_vol_max', filterSettings.volMax !== null ? filterSettings.volMax : '');
+                    localStorage.setItem('sentinel_filter_holder_max', filterSettings.holderMax);
+                    localStorage.setItem('sentinel_filter_graduated', filterSettings.graduatedOnly);
+                    localStorage.setItem('sentinel_filter_platforms', JSON.stringify(filterSettings.platforms));
+                    localStorage.setItem('sentinel_filter_table', filterSettings.applyToTable);
+                    
+                    showToast(`Settings saved. Signal filters updated.`, 'success');
+                    settingsModal.style.display = 'none';
+                    
+                    // Reload table if filters apply
+                    if (filterSettings.applyToTable) loadCurrentTab();
+                }
+
+                btnSettings.addEventListener('click', () =&gt; { settingsModal.style.display = 'flex'; });
+                settingsClose.onclick = () =&gt; { settingsModal.style.display = 'none'; };
+                settingsBtnClose.onclick = saveSettings;
+                settingsModal.onclick = (e) =&gt; { if (e.target === settingsModal) settingsModal.style.display = 'none'; };
+
+                let solUsdPrice = 0;
+
+                const SOLSNIFFER_KEY = 'zj67gv9b9w82spqv18t7oq3ashj0ii';
+                const scoreCache = new Map();
+                const holderPercentCache = new Map();
+                const holderCountCache = new Map();
+
+                const greedValueEl = document.getElementById('greed-value');
+                const greedFillEl = document.getElementById('greed-fill');
+
+                let nextSignalTime = null;
+                let isProcessingBatch = false;
+                
+                const signalTiers = ['NEW', 'LOW', 'MID', 'TRANSITION', 'HIGH'];
+                let activeSignalTier = 'NEW';
+                let activeSignalType = 'run'; // 'run' or 'hodl'
+                // Store best signals per tier and per type
+                const bestSignals = {
+                    NEW: { run: null, hodl: null },
+                    LOW: { run: null, hodl: null },
+                    MID: { run: null, hodl: null },
+                    TRANSITION: { run: null, hodl: null },
+                    HIGH: { run: null, hodl: null }
+                };
+                const lastRefresh = { 'NEW': 0, 'LOW': 0, 'MID': 0, 'TRANSITION': 0, 'HIGH': 0 };
+                
+                // Track skipped tokens per tier for Find New Signal
+                const skippedSignals = { 'NEW': new Set(), 'LOW': new Set(), 'MID': new Set(), 'TRANSITION': new Set(), 'HIGH': new Set() };
+
+                const helpTexts = {
+                    'greed-fear': 'Greed &amp; Fear Index shows market sentiment. 0-20: Extreme Fear (people are selling), 40-60: Neutral, 80-100: Extreme Greed (people are buying aggressively). High greed can signal a market top, high fear can signal a buying opportunity.',
+                    'rank': 'Current rank of the token in this list based on the selected sorting tab. Changes when you switch tabs.',
+                    'token': 'Full name of the token as provided by the data source. Hover over to see full name if truncated.',
+                    'symbol': 'Ticker symbol of the token (e.g., BONK, SOL). Used for quick identification.',
+                    'source': 'The decentralized exchange (DEX) or launchpad where this token is primarily traded. Includes Pump.fun, Moonshot, Raydium, Orca, Meteora, Heaven, Bags, etc.',
+                    'price-usd': 'Current price of one token in US Dollars. Updated in real-time from DEX data.',
+                    'price-sol': 'Current price of one token in Solana (SOL). Calculated using the SOL/USD price.',
+                    'volume': 'Total trading volume across all pairs in the last 24 hours. High volume indicates strong interest.',
+                    'mcap': 'Fully Diluted Market Capitalization. Calculated as current price × total supply. Be cautious: if supply is unreleased, FDV may be misleading.',
+                    'safety': 'Safety score from 0 to 100 provided by Solsniffer (or heuristic). Higher is safer. Scores above 70 are considered low risk, 40-69 moderate risk, below 40 high risk.',
+                    'rug': 'Estimated risk percentage (100 - safety score). The higher the percentage, the more likely the token could be a rug pull.',
+                    'risk': 'Qualitative risk level derived from the safety score: Low (70+), Medium (40-69), High (below 40).',
+                    'age': 'Filter tokens by age in hours since creation. Set min and max.',
+                    'holder': 'Maximum percentage of supply held by top 20 wallets. Lower means more distributed ownership.',
+                    'graduated': 'Only include tokens that have bonded to Raydium (graduated from Pump.fun).',
+                    'table-filters': 'If enabled, the same age, volume, platform, and graduated filters will also be applied when loading the main token table (except holder filter).'
+                };
+
+                function showToast(message, type = 'info') {
+                    const container = document.getElementById('toast-container');
+                    const toast = document.createElement('div');
+                    toast.className = `toast ${type}`;
+                    toast.innerHTML = `&lt;span&gt;${message}&lt;/span&gt; &lt;span class="toast-close" onclick="this.parentElement.remove()"&gt;×&lt;/span&gt;`;
+                    container.appendChild(toast);
+                    setTimeout(() =&gt; {
+                        if (toast.parentElement) {
+                            toast.style.animation = 'fadeOut 0.3s ease-out forwards';
+                            setTimeout(() =&gt; toast.remove(), 300);
+                        }
+                    }, 4000);
+                }
+
+                function formatUSD(value) {
+                    if (value === undefined || value === null) return '—';
+                    if (value &lt; 0.000001) return '$' + value.toFixed(10).replace(/\.?0+$/, '');
+                    if (value &lt; 0.01) return '$' + value.toFixed(6);
+                    if (value &lt; 1) return '$' + value.toFixed(4);
+                    if (value &gt; 1e12) return '$' + (value / 1e12).toFixed(2) + 'T';
+                    if (value &gt; 1e9) return '$' + (value / 1e9).toFixed(2) + 'B';
+                    if (value &gt; 1e6) return '$' + (value / 1e6).toFixed(2) + 'M';
+                    if (value &gt; 1e3) return '$' + (value / 1e3).toFixed(2) + 'K';
+                    return '$' + value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+                }
+
+                function formatSOL(value) {
+                    if (value === undefined || value === null || value === 0) return '—';
+                    if (value &lt; 0.000001) return value.toFixed(10).replace(/\.?0+$/, '') + ' SOL';
+                    if (value &lt; 0.01) return value.toFixed(6) + ' SOL';
+                    if (value &lt; 1) return value.toFixed(4) + ' SOL';
+                    if (value &gt; 1e6) return (value / 1e6).toFixed(2) + 'M SOL';
+                    if (value &gt; 1e3) return (value / 1e3).toFixed(2) + 'K SOL';
+                    return value.toFixed(2) + ' SOL';
+                }
+
+                function formatAge(timestampMs) {
+                    if (!timestampMs || timestampMs &lt;= 0) return 'unknown';
+                    const diff = Date.now() - timestampMs;
+                    const days = Math.floor(diff / 86400000);
+                    const hours = Math.floor((diff % 86400000) / 3600000);
+                    if (days &gt; 0) return `${days}d ${hours}h`;
+                    return `${hours}h`;
+                }
+
+                function formatSourceBadge(source) {
+                    const s = (source || '').toLowerCase();
+                    if (s.includes('pump')) return `&lt;span class="source-badge" style="background:rgba(52,211,153,0.1); color:#34d399; border-color:#34d399;"&gt;💊 Pump.fun&lt;/span&gt;`;
+                    if (s.includes('moonshot')) return `&lt;span class="source-badge" style="background:rgba(251,191,36,0.1); color:#fbbf24; border-color:#fbbf24;"&gt;🚀 Moonshot&lt;/span&gt;`;
+                    if (s.includes('raydium')) return `&lt;span class="source-badge" style="background:rgba(96,165,250,0.1); color:#60a5fa; border-color:#60a5fa;"&gt;💧 Raydium&lt;/span&gt;`;
+                    if (s.includes('meteora')) return `&lt;span class="source-badge" style="background:rgba(167,139,250,0.1); color:#a78bfa; border-color:#a78bfa;"&gt;☄️ Meteora&lt;/span&gt;`;
+                    if (s.includes('orca')) return `&lt;span class="source-badge" style="background:rgba(244,114,182,0.1); color:#f472b6; border-color:#f472b6;"&gt;🐋 Orca&lt;/span&gt;`;
+                    if (s.includes('heaven')) return `&lt;span class="source-badge" style="background:rgba(255,255,255,0.1); color:#fff; border-color:#fff;"&gt;☁️ Heaven&lt;/span&gt;`;
+                    if (s.includes('bags')) return `&lt;span class="source-badge" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:#ef4444;"&gt;🎒 Bags&lt;/span&gt;`;
+                    if (s.includes('bonk')) return `&lt;span class="source-badge" style="background:rgba(245,158,11,0.1); color:#f59e0b; border-color:#f59e0b;"&gt;🐕 Bonk&lt;/span&gt;`;
+                    return `&lt;span class="source-badge"&gt;${source || '—'}&lt;/span&gt;`;
+                }
+
+                function log(msg, type = 'info') {
+                    const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                    const color = type === 'error' ? '#f87171' : type === 'warn' ? '#fbbf24' : '#9ca3af';
+                    logEl.innerHTML += `&lt;span style="color:${color}"&gt;[${time}] ${msg}&lt;/span&gt;&lt;br&gt;`;
+                    logEl.scrollTop = logEl.scrollHeight;
+                }
+
+                async function safeFetch(url, options = {}, retries = 2, delay = 1000) {
+                    for (let i = 0; i &lt; retries; i++) {
+                        try {
+                            const res = await fetch(url, options);
+                            if (res.ok) {
+                                const text = await res.text();
+                                if (!text.trim()) continue;
+                                try {
+                                    const data = JSON.parse(text);
+                                    if (data &amp;&amp; typeof data === 'object') return data;
+                                } catch (parseErr) {}
+                            }
+                        } catch (e) {}
+                        await new Promise(r =&gt; setTimeout(r, delay * (i + 1)));
+                    }
+                    throw new Error(`Failed after ${retries} attempts`);
+                }
+
+                async function fetchSolSnifferScore(address) {
+                    if (!address || address === '—' || address.startsWith('mock')) return null;
+                    if (scoreCache.has(address)) return scoreCache.get(address);
+
+                    try {
+                        const url = `https://solsniffer.com/api/v1/token/${address}`;
+                        const data = await safeFetch(url, { headers: { 'x-api-key': SOLSNIFFER_KEY } }, 1, 1000);
+
+                        if (data &amp;&amp; typeof data.score === 'number') {
+                            const score = Math.min(100, Math.max(0, Math.round(data.score)));
+                            scoreCache.set(address, score);
+                            // also get holder count if available
+                            if (data.holders) holderCountCache.set(address, data.holders);
+                            return score;
+                        } else if (data &amp;&amp; data.score !== undefined) {
+                            const score = Math.min(100, Math.max(0, Math.round(data.score)));
+                            scoreCache.set(address, score);
+                            if (data.holders) holderCountCache.set(address, data.holders);
+                            return score;
+                        }
+                    } catch (e) {}
+                    return null;
+                }
+
+                async function analyzeHoldersRPC(mint) {
+                    if (!mint || mint === '—') return null;
+                    if (holderPercentCache.has(mint)) return holderPercentCache.get(mint);
+                    try {
+                        const rpc = userRpcUrl || 'https://api.mainnet-beta.solana.com'; 
+                        const [supplyRes, largestRes] = await Promise.all([
+                            fetch(rpc, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({jsonrpc:"2.0", id:1, method:"getTokenSupply", params:[mint]})
+                            }).then(r =&gt; r.json()),
+                            fetch(rpc, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({jsonrpc:"2.0", id:2, method:"getTokenLargestAccounts", params:[mint]})
+                            }).then(r =&gt; r.json())
+                        ]);
+                        
+                        if (supplyRes &amp;&amp; supplyRes.result &amp;&amp; supplyRes.result.value &amp;&amp; largestRes &amp;&amp; largestRes.result &amp;&amp; largestRes.result.value) {
+                            const total = parseFloat(supplyRes.result.value.uiAmount);
+                            let topSum = 0;
+                            largestRes.result.value.forEach(acc =&gt; {
+                                topSum += parseFloat(acc.uiAmount);
+                            });
+                            const pct = total &gt; 0 ? (topSum / total) * 100 : 0;
+                            holderPercentCache.set(mint, pct);
+                            return pct;
+                        }
+                    } catch(e) {}
+                    return null;
+                }
+
+                // Clone likelihood algorithm
+                function computeCloneLikelihood(token) {
+                    let score = 0;
+                    const name = (token.name || '').toLowerCase();
+                    const symbol = (token.symbol || '').toLowerCase();
+                    // Excessive length
+                    if (name.length &gt; 30) score += 15;
+                    if (symbol.length &gt; 10) score += 10;
+                    // Contains repetitive patterns
+                    const repetitive = /(.)\1{3,}/; // repeated character 4+ times
+                    if (repetitive.test(name)) score += 20;
+                    if (repetitive.test(symbol)) score += 10;
+                    // Contains common scam keywords
+                    const scamWords = ['pump', 'dump', 'scam', 'rug', 'safe', 'moon', 'floki', 'dogecoin', 'shiba', 'pepe', 'woof'];
+                    let matches = 0;
+                    scamWords.forEach(word =&gt; {
+                        if (name.includes(word)) matches++;
+                        if (symbol.includes(word)) matches++;
+                    });
+                    score += Math.min(30, matches * 5);
+                    // Very new token with high supply and no liquidity
+                    const ageHours = token.pairCreatedAt ? (Date.now() - token.pairCreatedAt) / 3600000 : 999;
+                    if (ageHours &lt; 1 &amp;&amp; (token.marketCapFdv || 0) &lt; 5000) score += 20;
+                    // All caps symbol (often used in scams)
+                    if (token.symbol === token.symbol.toUpperCase() &amp;&amp; token.symbol.length &lt;= 5) score += 5;
+                    // Contains numbers in name
+                    if (/\d/.test(name)) score += 5;
+                    return Math.min(100, Math.round(score));
+                }
+
+                async function fetchSolPrice() {
+                    try {
+                        const data = await safeFetch('https://api.dexscreener.com/latest/dex/search?q=SOL');
+                        if (data &amp;&amp; data.pairs) {
+                            const solPair = data.pairs.find(p =&gt; p.quoteToken.symbol === 'USDC' &amp;&amp; p.baseToken.symbol === 'SOL');
+                            if (solPair &amp;&amp; solPair.priceUsd) {
+                                solUsdPrice = parseFloat(solPair.priceUsd);
+                            } else {
+                                const anySol = data.pairs.find(p =&gt; p.baseToken.symbol === 'SOL' &amp;&amp; p.priceUsd);
+                                if (anySol) {
+                                    solUsdPrice = parseFloat(anySol.priceUsd);
+                                } else {
+                                    solUsdPrice = 150;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        solUsdPrice = 150;
+                    }
+                }
+
+                const BIRDEYE_KEY = '833ef98af48b42b8896014a371200bbf';
+
+                function isIgnoredToken(symbol) {
+                    const s = (symbol || '').toUpperCase();
+                    const ignoreList = ['USDC', 'USDT', 'USDY', 'UXD', 'DAI', 'FRAX', 'PYUSD', 'WSOL', 'SOL', 'WBTC', 'BTC', 'WETH', 'ETH', 'WBNB', 'BNB', 'EURC'];
+                    return ignoreList.includes(s);
+                }
+
+                function normalizeBirdeye(token) {
+                    return {
+                        name: token.name || '?',
+                        symbol: token.symbol || '?',
+                        priceUsd: token.price || 0,
+                        volume24h: token.volume24h || 0,
+                        marketCapFdv: token.marketCap || 0,
+                        liquidity: token.liquidity || token.volume24h * 2 || 10000,
+                        pairCreatedAt: token.createdAt || Date.now() - (token.rank * 86400000) || 0,
+                        address: token.address || '',
+                        source: 'Birdeye',
+                        priceChange6h: 0,
+                        priceChange24h: 0,
+                        raw: token
+                    };
+                }
+
+                async function fetchFromBirdeye(offset = 0) {
+                    try {
+                        const data = await safeFetch(`https://public-api.birdeye.so/defi/tokenlist?sort_by=v24hUSD&amp;order=desc&amp;offset=${offset}&amp;limit=50`, {
+                            headers: { 'X-API-KEY': BIRDEYE_KEY }
+                        });
+                        if (data?.data?.tokens &amp;&amp; data.data.tokens.length &gt; 0) {
+                            return data.data.tokens.map(normalizeBirdeye).filter(t =&gt; !isIgnoredToken(t.symbol));
+                        }
+                    } catch (e) {}
+                    return null;
+                }
+
+                async function fetchFromDexScreener(query = 'solana') {
+                    try {
+                        const data = await safeFetch(`https://api.dexscreener.com/latest/dex/search?q=${query}`);
+                        if (data?.pairs &amp;&amp; data.pairs.length &gt; 0) {
+                            return data.pairs.filter(p =&gt; !isIgnoredToken(p.baseToken?.symbol)).map(p =&gt; {
+                                const source = p.dexId || 'DexScreener';
+                                return {
+                                    name: p.baseToken?.name || '?',
+                                    symbol: p.baseToken?.symbol || '?',
+                                    priceUsd: parseFloat(p.priceUsd) || 0,
+                                    volume24h: p.volume?.h24 || 0,
+                                    marketCapFdv: p.fdv || 0,
+                                    liquidity: p.liquidity?.usd || 0,
+                                    pairCreatedAt: p.pairCreatedAt || 0,
+                                    address: p.baseToken?.address || '',
+                                    source: source,
+                                    priceChange6h: p.priceChange?.h6 || 0,
+                                    priceChange24h: p.priceChange?.h24 || 0,
+                                    raw: p
+                                };
+                            });
+                        }
+                    } catch (e) {}
+                    return null;
+                }
+
+                // Enhanced safety score (0-100, higher = safer)
+                function computeSafetyScore(token) {
+                    let score = 50;
+                    const liq = token.liquidity || 0;
+                    if (liq &gt; 1_000_000) score += 25;
+                    else if (liq &gt; 500_000) score += 20;
+                    else if (liq &gt; 100_000) score += 15;
+                    else if (liq &gt; 50_000) score += 10;
+                    else if (liq &gt; 10_000) score += 5;
+                    else if (liq &lt; 2_000) score -= 20;
+                    else if (liq &lt; 5_000) score -= 10;
+
+                    const vol = token.volume24h || 0;
+                    if (vol &gt; 500_000) score += 20;
+                    else if (vol &gt; 200_000) score += 15;
+                    else if (vol &gt; 50_000) score += 10;
+                    else if (vol &gt; 10_000) score += 5;
+                    else if (vol &lt; 1_000) score -= 15;
+                    else if (vol &lt; 5_000) score -= 5;
+
+                    const ageHours = token.pairCreatedAt ? (Date.now() - token.pairCreatedAt) / 3600000 : 0;
+                    if (ageHours &lt; 0.25) score -= 25;
+                    else if (ageHours &lt; 1) score -= 15;
+                    else if (ageHours &lt; 6) score -= 5;
+                    else if (ageHours &gt; 24 &amp;&amp; ageHours &lt; 168) score += 10;
+                    else if (ageHours &gt;= 168) score += 5;
+
+                    const mcap = token.marketCapFdv || 0;
+                    if (liq &gt; 0) {
+                        const ratio = mcap / liq;
+                        if (ratio &gt; 100) score -= 20;
+                        else if (ratio &gt; 50) score -= 10;
+                        else if (ratio &gt; 20) score -= 5;
+                        else if (ratio &lt; 5) score += 10;
+                        else if (ratio &lt; 10) score += 5;
+                    }
+
+                    const src = (token.source || '').toLowerCase();
+                    if (src.includes('raydium') || src.includes('orca') || src.includes('meteora')) score += 10;
+                    else if (src.includes('pump')) score -= 15;
+                    else if (src.includes('heaven') || src.includes('bags')) score -= 10;
+                    else if (src.includes('moonshot')) score -= 5;
+
+                    const priceChange6h = token.priceChange6h || 0;
+                    const priceChange24h = token.priceChange24h || 0;
+                    if (priceChange6h &lt; -50) score -= 20;
+                    else if (priceChange6h &lt; -20) score -= 10;
+                    else if (priceChange6h &gt; 50) score += 15;
+                    else if (priceChange6h &gt; 20) score += 10;
+                    else if (priceChange6h &gt; 5) score += 5;
+
+                    if (priceChange24h &lt; -70) score -= 25;
+                    else if (priceChange24h &lt; -40) score -= 15;
+                    else if (priceChange24h &gt; 100) score += 10;
+                    else if (priceChange24h &gt; 30) score += 5;
+
+                    const txns = token.raw?.txns?.h24?.buys + token.raw?.txns?.h24?.sells || 0;
+                    if (txns &gt; 0 &amp;&amp; vol &gt; 0) {
+                        const avgTxSize = vol / txns;
+                        if (avgTxSize &gt; 5000) score -= 15;
+                        else if (avgTxSize &lt; 200 &amp;&amp; txns &gt; 500) score += 10;
+                    }
+
+                    const symbol = (token.symbol || '').toUpperCase();
+                    const name = (token.name || '').toUpperCase();
+                    if (['BONK', 'JUP', 'RAY', 'ORCA', 'SAMO'].includes(symbol)) score += 20;
+                    else if (symbol.includes('SOL') || name.includes('SOLANA')) score += 10;
+
+                    if (liq &gt; 0 &amp;&amp; mcap &gt; 0 &amp;&amp; (mcap / liq) &gt; 100) score -= 15;
+
+                    score = Math.min(100, Math.max(0, Math.round(score)));
+                    return score;
+                }
+
+                function getRugPercent(safetyScore) {
+                    return (100 - safetyScore).toFixed(0);
+                }
+
+                function getRating(score) {
+                    if (score &gt;= 70) return { text: '✅ BUY', class: 'rating-buy' };
+                    if (score &gt;= 40) return { text: '⚠️ CAUTION', class: 'rating-caution' };
+                    return { text: '❌ DON‘T BUY', class: 'rating-dont' };
+                }
+
+                async function updateGreedFear() {
+                    try {
+                        const res = await safeFetch('https://api.alternative.me/fng/?limit=1', {}, 2, 2000);
+                        if (res &amp;&amp; res.data &amp;&amp; res.data[0]) {
+                            const val = parseInt(res.data[0].value);
+                            greedValueEl.textContent = val;
+                            greedFillEl.style.width = val + '%';
+                            if (val &gt;= 60) greedFillEl.className = 'index-fill greed';
+                            else if (val &lt;= 40) greedFillEl.className = 'index-fill fear';
+                            else greedFillEl.className = 'index-fill neutral';
+                        } else {
+                            greedValueEl.textContent = '--';
+                        }
+                    } catch(e) {
+                        greedValueEl.textContent = 'Err';
+                    }
+                }
+                setInterval(updateGreedFear, 3600000);
+                updateGreedFear();
+
+                // ---- Fetch one batch (combination of DexScreener and Birdeye) ----
+                async function fetchOneBatch(batchIndex) {
+                    const queries = ['solana', 'pump', 'raydium', 'moonshot', 'orca'];
+                    const queryIndex = batchIndex % 5;
+                    const offset = batchIndex * 50;
+                    let tokens = [];
+                    try {
+                        const [dex, beye] = await Promise.all([
+                            fetchFromDexScreener(queries[queryIndex] || 'solana'),
+                            fetchFromBirdeye(offset)
+                        ]);
+                        if (dex) tokens.push(...dex);
+                        if (beye) tokens.push(...beye);
+                    } catch (e) {
+                        log(`Batch ${batchIndex+1} fetch error: ${e.message}`, 'error');
+                    }
+                    // deduplicate within this batch
+                    const unique = [];
+                    const seen = new Set();
+                    for (let t of tokens) {
+                        if (t &amp;&amp; t.address &amp;&amp; !seen.has(t.address)) {
+                            seen.add(t.address);
+                            unique.push(t);
+                        }
+                    }
+                    return unique;
+                }
+
+                // ---- Apply filters to a token (for signals) ----
+                async function passesFilters(token, forSignal = true) {
+                    const ageHours = token.pairCreatedAt ? (Date.now() - token.pairCreatedAt) / 3600000 : null;
+                    if (ageHours !== null) {
+                        if (filterSettings.ageMin &gt; 0 &amp;&amp; ageHours &lt; filterSettings.ageMin) return false;
+                        if (filterSettings.ageMax !== null &amp;&amp; ageHours &gt; filterSettings.ageMax) return false;
+                    }
+                    
+                    const vol = token.volume24h || 0;
+                    if (filterSettings.volMin &gt; 0 &amp;&amp; vol &lt; filterSettings.volMin) return false;
+                    if (filterSettings.volMax !== null &amp;&amp; vol &gt; filterSettings.volMax) return false;
+                    
+                    if (filterSettings.graduatedOnly) {
+                        const src = (token.source || '').toLowerCase();
+                        if (!src.includes('raydium')) return false;
+                    }
+                    
+                    if (filterSettings.platforms.length &gt; 0) {
+                        const src = (token.source || '').toLowerCase();
+                        let matched = false;
+                        for (let p of filterSettings.platforms) {
+                            if (src.includes(p)) { matched = true; break; }
+                        }
+                        if (!matched) return false;
+                    }
+                    
+                    if (forSignal &amp;&amp; filterSettings.holderMax &lt; 100 &amp;&amp; token.address &amp;&amp; token.address !== '—') {
+                        let holderPct = holderPercentCache.get(token.address);
+                        if (holderPct === undefined) {
+                            holderPct = await analyzeHoldersRPC(token.address);
+                        }
+                        if (holderPct !== null &amp;&amp; holderPct &gt; filterSettings.holderMax) return false;
+                    }
+                    
+                    return true;
+                }
+
+                // Score a token for a specific signal type
+                function scoreToken(token, type, targetTier) {
+                    let safety = computeSafetyScore(token);
+                    if (token.address &amp;&amp; !token.address.startsWith('mock')) {
+                        const cached = scoreCache.get(token.address);
+                        if (cached !== undefined) safety = (safety + cached) / 2;
+                    }
+                    if (safety &lt; 40) return -1; // too risky
+                    
+                    const mcap = token.marketCapFdv;
+                    const vol = token.volume24h;
+                    const liq = token.liquidity;
+                    const ageHours = token.pairCreatedAt ? (Date.now() - token.pairCreatedAt) / 3600000 : 999;
+                    const priceChange6h = token.priceChange6h || 0;
+                    
+                    let score = 0;
+                    if (type === 'run') {
+                        // Heavy weight on momentum, volume, and youth
+                        score += safety / 3; // safety still matters but less
+                        if (ageHours &lt; 1) score += 50;
+                        else if (ageHours &lt; 6) score += 30;
+                        else if (ageHours &lt; 12) score += 15;
+                        else if (ageHours &lt; 24) score += 5;
+                        if (priceChange6h &gt; 20) score += 35;
+                        else if (priceChange6h &gt; 10) score += 20;
+                        else if (priceChange6h &gt; 5) score += 10;
+                        if (vol &gt; mcap * 0.5) score += 30;
+                        else if (vol &gt; mcap * 0.2) score += 15;
+                        if (liq &gt; 0 &amp;&amp; vol / liq &gt; 1) score += 10; // healthy turnover
+                    } else { // hodl
+                        // Safety first, liquidity, low holder concentration, established age
+                        score += safety * 0.8;
+                        if (ageHours &gt; 24 &amp;&amp; ageHours &lt; 168) score += 20;
+                        else if (ageHours &gt;= 168) score += 10;
+                        if (liq &gt; mcap * 0.1) score += 25;
+                        else if (liq &gt; mcap * 0.05) score += 15;
+                        if (priceChange6h &gt; -10 &amp;&amp; priceChange6h &lt; 30) score += 10; // stable
+                        // Holder concentration is already filtered, but if we have data we could reward low concentration
+                    }
+                    return score;
+                }
+
+                // Find best token for a given tier and type by scanning batches sequentially until found
+                async function findBestTokenSequential(tier, type, skipAddresses = new Set()) {
+                    const maxBatches = userBatchLimit;
+                    for (let batchIdx = 0; batchIdx &lt; maxBatches; batchIdx++) {
+                        const batchTokens = await fetchOneBatch(batchIdx);
+                        if (!batchTokens.length) continue;
+                        
+                        let bestToken = null;
+                        let bestScore = -Infinity;
+                        for (let t of batchTokens) {
+                            if (skipAddresses.has(t.address)) continue;
+                            if (tier === 'NEW') {
+                                const ageHours = t.pairCreatedAt ? (Date.now() - t.pairCreatedAt) / 3600000 : 999;
+                                if (ageHours &gt; 6) continue;
+                            }
+                            if (!await passesFilters(t, true)) continue;
+                            
+                            const tokenTier = (t.marketCapFdv &lt; 10000) ? 'NEW' :
+                                             (t.marketCapFdv &lt; 50000) ? 'LOW' :
+                                             (t.marketCapFdv &lt; 150000) ? 'MID' :
+                                             (t.marketCapFdv &lt; 500000) ? 'TRANSITION' : 'HIGH';
+                            if (tokenTier !== tier) continue;
+                            
+                            const score = scoreToken(t, type, tier);
+                            if (score &gt; bestScore) {
+                                bestScore = score;
+                                bestToken = t;
+                            }
+                        }
+                        if (bestToken) {
+                            log(`Found ${type} signal for ${tier} in batch ${batchIdx+1}: ${bestToken.symbol} (score ${bestScore.toFixed(1)})`);
+                            return bestToken;
+                        }
+                    }
+                    return null;
+                }
+
+                async function generateAllSignals() {
+                    if (isProcessingBatch) {
+                        log('Signal generation already in progress, skipping...', 'warn');
+                        return;
+                    }
+                    isProcessingBatch = true;
+                    const signalContent = document.getElementById('signal-content');
+                    signalContent.classList.add('scanning');
+                    try {
+                        log('Scanning for new Alpha Signals across all tiers...');
+                        document.getElementById('signal-status').textContent = 'Analyzing market (sequential batches)...';
+                        
+                        for (let tier of signalTiers) {
+                            const runToken = await findBestTokenSequential(tier, 'run', new Set());
+                            const hodlToken = await findBestTokenSequential(tier, 'hodl', new Set());
+                            bestSignals[tier].run = runToken;
+                            bestSignals[tier].hodl = hodlToken;
+                            if (runToken &amp;&amp; runToken.address) fetchSolSnifferScore(runToken.address);
+                            if (hodlToken &amp;&amp; hodlToken.address) fetchSolSnifferScore(hodlToken.address);
+                            lastRefresh[tier] = Date.now();
+                        }
+                        renderActiveSignalTier();
+                    } catch (err) {
+                        log(`Signal generation error: ${err.message}`, 'error');
+                    } finally {
+                        isProcessingBatch = false;
+                        signalContent.classList.remove('scanning');
+                        nextSignalTime = Date.now() + (7 * 60 * 1000);
+                        updateSignalTimer();
+                    }
+                }
+
+                function renderActiveSignalTier() {
+                    const token = bestSignals[activeSignalTier]?.[activeSignalType];
+                    const contentEl = document.getElementById('signal-content');
+                    const statusEl = document.getElementById('signal-status');
+
+                    if (token) {
+                        statusEl.innerHTML = `&lt;span style="color:var(--green)"&gt;Signal Active - ${activeSignalType === 'run' ? 'High Momentum Setup' : 'High Safety Setup'}&lt;/span&gt;`;
+                        const safetyScore = computeSafetyScore(token);
+                        contentEl.innerHTML = `
+                            &lt;div class="signal-token-info"&gt;
+                                &lt;div class="signal-token-name"&gt;${token.name} (${token.symbol})&lt;/div&gt;
+                                &lt;div class="signal-token-ca" onclick="copyCA('${token.address}')" title="Click to copy CA"&gt;${token.address} 📋&lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class="signal-metrics"&gt;
+                                &lt;div class="signal-metric"&gt;
+                                    &lt;div class="signal-metric-label"&gt;MCAP&lt;/div&gt;
+                                    &lt;div class="signal-metric-val"&gt;${formatUSD(token.marketCapFdv)}&lt;/div&gt;
+                                &lt;/div&gt;
+                                &lt;div class="signal-metric"&gt;
+                                    &lt;div class="signal-metric-label"&gt;VOLUME&lt;/div&gt;
+                                    &lt;div class="signal-metric-val"&gt;${formatUSD(token.volume24h)}&lt;/div&gt;
+                                &lt;/div&gt;
+                                &lt;div class="signal-metric"&gt;
+                                    &lt;div class="signal-metric-label"&gt;SAFETY&lt;/div&gt;
+                                    &lt;div class="signal-metric-val"&gt;${safetyScore}&lt;/div&gt;
+                                &lt;/div&gt;
+                                &lt;div class="signal-metric"&gt;
+                                    &lt;div class="signal-metric-label"&gt;SOURCE&lt;/div&gt;
+                                    &lt;div class="signal-metric-val"&gt;${formatSourceBadge(token.source)}&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;button class="btn-signal-action" id="btn-view-signal"&gt;ANALYZE&lt;/button&gt;
+                        `;
+                        document.getElementById('btn-view-signal').addEventListener('click', () =&gt; {
+                            showModal(token);
+                        });
+                    } else {
+                        statusEl.textContent = `No ${activeSignalType === 'run' ? 'high momentum' : 'safe'} setups found for ${activeSignalTier} tier.`;
+                        contentEl.innerHTML = `&lt;div style="color: #6b7280; font-style: italic; width: 100%; text-align: center;"&gt;Waiting for market conditions to improve...&lt;/div&gt;`;
+                    }
+                }
+
+                async function scanTier() {
+                    if (isProcessingBatch) {
+                        showToast('Scanner is busy, please wait a moment...', 'warn');
+                        return;
+                    }
+                    const now = Date.now();
+                    const tier = activeSignalTier;
+
+                    if (now - lastRefresh[tier] &lt; 30000) {
+                        showToast(`Please wait 30 seconds between requests for ${tier} tier.`, 'warn');
+                        return;
+                    }
+
+                    isProcessingBatch = true;
+                    const signalContent = document.getElementById('signal-content');
+                    signalContent.classList.add('scanning');
+                    const btn1 = document.getElementById('btn-refresh-tier');
+                    const btn2 = document.getElementById('btn-find-new');
+                    btn1.disabled = true; btn2.disabled = true;
+                    document.getElementById('signal-status').textContent = `Scanning ${tier} tier for ${activeSignalType === 'run' ? 'run' : 'hodl'} signals...`;
+
+                    try {
+                        const best = await findBestTokenSequential(tier, activeSignalType, new Set());
+                        if (best) {
+                            if (best.address) fetchSolSnifferScore(best.address);
+                            bestSignals[tier][activeSignalType] = best;
+                            lastRefresh[tier] = Date.now();
+                            log(`Scan Success: ${tier} ${activeSignalType} signal -&gt; ${best.symbol}`);
+                            showToast(`${tier} ${activeSignalType} signal updated!`, 'success');
+                        } else {
+                            log(`Scan Failed: No valid setups for ${tier} ${activeSignalType} after scanning all batches.`, 'warn');
+                            showToast(`No valid setups found for ${tier} ${activeSignalType}.`, 'warn');
+                            bestSignals[tier][activeSignalType] = null;
+                            lastRefresh[tier] = Date.now();
+                        }
+                        renderActiveSignalTier();
+                    } catch (err) {
+                        log(`Scan error: ${err.message}`, 'error');
+                    } finally {
+                        isProcessingBatch = false;
+                        signalContent.classList.remove('scanning');
+                        nextSignalTime = Date.now() + (7 * 60 * 1000);
+                        updateSignalTimer();
+                        btn1.disabled = false; btn2.disabled = false;
+                    }
+                }
+
+                async function findNewSignal() {
+                    if (isProcessingBatch) {
+                        showToast('Scanner is busy, please wait a moment...', 'warn');
+                        return;
+                    }
+                    const now = Date.now();
+                    const tier = activeSignalTier;
+
+                    if (now - lastRefresh[tier] &lt; 30000) {
+                        showToast(`Please wait 30 seconds between requests for ${tier} tier.`, 'warn');
+                        return;
+                    }
+
+                    const currentToken = bestSignals[tier][activeSignalType];
+                    if (currentToken &amp;&amp; currentToken.address) {
+                        skippedSignals[tier].add(currentToken.address);
+                    }
+
+                    isProcessingBatch = true;
+                    const signalContent = document.getElementById('signal-content');
+                    signalContent.classList.add('scanning');
+                    const btn1 = document.getElementById('btn-refresh-tier');
+                    const btn2 = document.getElementById('btn-find-new');
+                    btn1.disabled = true; btn2.disabled = true;
+                    document.getElementById('signal-status').textContent = `Hunting for NEW ${tier} ${activeSignalType} signal...`;
+
+                    try {
+                        const best = await findBestTokenSequential(tier, activeSignalType, skippedSignals[tier]);
+                        if (best) {
+                            if (best.address) fetchSolSnifferScore(best.address);
+                            bestSignals[tier][activeSignalType] = best;
+                            lastRefresh[tier] = Date.now();
+                            log(`Find New Success: New ${tier} ${activeSignalType} signal -&gt; ${best.symbol}`);
+                            showToast(`New ${tier} ${activeSignalType} signal found!`, 'success');
+                        } else {
+                            log(`Find New Failed: No other valid setups for ${tier} ${activeSignalType}.`, 'warn');
+                            showToast(`No other valid signals found. Resetting skip list.`, 'warn');
+                            skippedSignals[tier].clear();
+                            lastRefresh[tier] = Date.now();
+                        }
+                        renderActiveSignalTier();
+                    } catch (err) {
+                        log(`Find new error: ${err.message}`, 'error');
+                    } finally {
+                        isProcessingBatch = false;
+                        signalContent.classList.remove('scanning');
+                        nextSignalTime = Date.now() + (7 * 60 * 1000);
+                        updateSignalTimer();
+                        btn1.disabled = false; btn2.disabled = false;
+                    }
+                }
+
+                // --- Setup UI event handlers ---
+                document.querySelectorAll('.sig-tab').forEach(btn =&gt; {
+                    btn.addEventListener('click', () =&gt; {
+                        document.querySelectorAll('.sig-tab').forEach(b =&gt; b.classList.remove('active'));
+                        btn.classList.add('active');
+                        activeSignalTier = btn.dataset.tier;
+                        renderActiveSignalTier();
+                    });
+                });
+
+                document.querySelectorAll('.type-btn').forEach(btn =&gt; {
+                    btn.addEventListener('click', () =&gt; {
+                        document.querySelectorAll('.type-btn').forEach(b =&gt; b.classList.remove('active'));
+                        btn.classList.add('active');
+                        activeSignalType = btn.dataset.type;
+                        renderActiveSignalTier();
+                    });
+                });
+
+                document.getElementById('btn-refresh-tier').addEventListener('click', scanTier);
+                document.getElementById('btn-find-new').addEventListener('click', findNewSignal);
+
+                // Timer functions
+                function updateSignalTimer() {
+                    const now = Date.now();
+                    if (nextSignalTime === null) {
+                        document.getElementById('signal-countdown').textContent = '(---)';
+                        return;
+                    }
+                    let remaining = Math.max(0, Math.floor((nextSignalTime - now) / 1000));
+                    if (remaining &lt;= 0 &amp;&amp; !isProcessingBatch) {
+                        generateAllSignals();
+                    }
+                    const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+                    const secs = String(remaining % 60).padStart(2, '0');
+                    document.getElementById('signal-countdown').textContent = `(${mins}:${secs})`;
+                }
+
+                document.addEventListener("visibilitychange", () =&gt; {
+                    if (document.visibilityState === "visible" &amp;&amp; nextSignalTime !== null) {
+                        if (Date.now() &gt;= nextSignalTime &amp;&amp; !isProcessingBatch) {
+                            generateAllSignals();
+                        }
+                    }
+                });
+
+                setInterval(updateSignalTimer, 1000);
+                setTimeout(generateAllSignals, 2000);
+
+                // --- Modal with enhanced tokenomics ---
+                function renderAdvancedModal(token, safetyScore, cloneLikelihood, holderPct, holderCount) {
+                    const priceUsd = token.priceUsd || 0;
+                    const priceSol = solUsdPrice ? priceUsd / solUsdPrice : 0;
+                    const age = formatAge(token.pairCreatedAt);
+                    const liquidity = token.liquidity || 0;
+                    const volume = token.volume24h || 0;
+                    const mcap = token.marketCapFdv || 0;
+                    const source = token.source || 'unknown';
+                    const rating = getRating(safetyScore);
+                    const ratio = liquidity ? (volume / liquidity).toFixed(2) : '—';
+                    const priceChange6h = token.priceChange6h || 0;
+                    const priceChange24h = token.priceChange24h || 0;
+                    const cloneClass = cloneLikelihood &gt; 70 ? 'status-high' : (cloneLikelihood &gt; 40 ? 'status-med' : 'status-low');
+                    const cloneText = cloneLikelihood &gt; 70 ? '⚠️ HIGH' : (cloneLikelihood &gt; 40 ? '⚠️ MEDIUM' : '✅ LOW');
+                    
+                    return `
+                        &lt;div class="detail-grid"&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Token&lt;/span&gt;&lt;span class="detail-value"&gt;${token.name} (${token.symbol})&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Source / DEX&lt;/span&gt;&lt;span class="detail-value"&gt;${formatSourceBadge(source)}&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Contract&lt;/span&gt;&lt;span class="detail-value" style="font-size:0.8rem; word-break:break-all; cursor:pointer;" onclick="copyCA('${token.address}')" title="Copy"&gt;${token.address || '—'} 📋&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Age (created)&lt;/span&gt;&lt;span class="detail-value"&gt;${age}&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Price USD&lt;/span&gt;&lt;span class="detail-value"&gt;${formatUSD(priceUsd)}&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Price SOL&lt;/span&gt;&lt;span class="detail-value"&gt;${formatSOL(priceSol)}&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Liquidity&lt;/span&gt;&lt;span class="detail-value"&gt;${formatUSD(liquidity)}&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;24h Volume&lt;/span&gt;&lt;span class="detail-value"&gt;${formatUSD(volume)}&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Market Cap (FDV)&lt;/span&gt;&lt;span class="detail-value"&gt;${formatUSD(mcap)}&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Volume/Liquidity&lt;/span&gt;&lt;span class="detail-value"&gt;${ratio}&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;6h Price Change&lt;/span&gt;&lt;span class="detail-value ${priceChange6h &gt; 0 ? 'status-low' : (priceChange6h &lt; 0 ? 'status-high' : '')}"&gt;${priceChange6h &gt; 0 ? '+' : ''}${priceChange6h.toFixed(2)}%&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;24h Price Change&lt;/span&gt;&lt;span class="detail-value ${priceChange24h &gt; 0 ? 'status-low' : (priceChange24h &lt; 0 ? 'status-high' : '')}"&gt;${priceChange24h &gt; 0 ? '+' : ''}${priceChange24h.toFixed(2)}%&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Clone Likelihood&lt;/span&gt;&lt;span class="detail-value ${cloneClass}"&gt;${cloneLikelihood}% (${cloneText})&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Holder Count (est)&lt;/span&gt;&lt;span class="detail-value"&gt;${holderCount !== null ? holderCount.toLocaleString() : '—'}&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item"&gt;&lt;span class="detail-label"&gt;Top 20 Holders&lt;/span&gt;&lt;span class="detail-value"&gt;${holderPct !== null ? holderPct.toFixed(2) + '%' : '—'}&lt;/span&gt;&lt;/div&gt;
+                            &lt;div class="detail-item" style="grid-column: 1 / -1; flex-direction: column; align-items: flex-start; gap: 8px;"&gt;
+                                &lt;div style="display:flex; justify-content: space-between; width: 100%;"&gt;
+                                    &lt;span class="detail-label"&gt;Holders Eval (RPC Verification)&lt;/span&gt;
+                                    &lt;span class="help-icon" onclick="analyzeHoldersRPC('${token.address}').then(res =&gt; { const el = document.getElementById('rpc-holder-eval-${token.address}'); if(el){ el.textContent = res !== null ? 'Top 20 wallets hold ' + res.toFixed(2) + '%' : 'Query failed'; el.style.color = res !== null &amp;&amp; res &lt; 30 ? 'var(--green)' : 'var(--yellow)'; } })" title="Refresh RPC Data"&gt;🔄&lt;/span&gt;
+                                &lt;/div&gt;
+                                &lt;span class="detail-value" id="rpc-holder-eval-${token.address}" style="font-size:0.9rem; color: var(--yellow); text-align:left;"&gt;Querying Blockchain...&lt;/span&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        
+                        &lt;div style="display:flex; justify-content:center; margin-bottom: 20px;"&gt;
+                            &lt;a href="https://app.bubblemaps.io/sol/token/${token.address}" target="_blank" class="rating-box" style="text-decoration:none; background:rgba(167,139,250,0.1); color:#a78bfa; border-color:#a78bfa; font-size:1.1rem; padding:12px 24px;" onclick="showToast('Opening BubbleMaps in a new external browser window...', 'info');"&gt;🗺️ View BubbleMaps Analysis ↗&lt;/a&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class="safety-score"&gt;
+                            &lt;div style="font-size:1rem; color:#9ca3af; margin-bottom:8px;"&gt;Safety score (Sentinel Enhanced)&lt;/div&gt;
+                            &lt;div class="score-number"&gt;${safetyScore}&lt;/div&gt;
+                            &lt;div class="rating-box ${rating.class}"&gt;${rating.text}&lt;/div&gt;
+                            &lt;p style="margin-top:16px; color:#9ca3af; font-size:0.9rem;"&gt;
+                                ${safetyScore &gt;= 70 ? 'Low risk indicators — looks solid.' : safetyScore &gt;= 40 ? 'Moderate risk, do your own research.' : 'High risk, proceed with extreme caution.'}
+                            &lt;/p&gt;
+                        &lt;/div&gt;
+                    `;
+                }
+
+                async function showModal(rawData) {
+                    const title = document.querySelector('#detail-modal .modal-title');
+                    if (title) title.innerHTML = '🔍 Advanced safety report';
+
+                    let token;
+                    if (rawData &amp;&amp; typeof rawData === 'object') {
+                        if (rawData.baseToken || rawData.address || rawData.symbol) {
+                            token = {
+                                name: rawData.baseToken?.name || rawData.name || '?',
+                                symbol: rawData.baseToken?.symbol || rawData.symbol || '?',
+                                priceUsd: parseFloat(rawData.priceUsd) || rawData.price || 0,
+                                volume24h: rawData.volume?.h24 || rawData.volume24h || 0,
+                                marketCapFdv: rawData.fdv || rawData.marketCap || 0,
+                                liquidity: rawData.liquidity?.usd || rawData.liquidity || 0,
+                                pairCreatedAt: rawData.pairCreatedAt || rawData.createdAt || 0,
+                                address: rawData.baseToken?.address || rawData.address || '',
+                                source: rawData.dexId || rawData.source || 'unknown',
+                                priceChange6h: rawData.priceChange?.h6 || 0,
+                                priceChange24h: rawData.priceChange?.h24 || 0,
+                                raw: rawData.raw || rawData
+                            };
+                        } else {
+                            token = {
+                                name: '?',
+                                symbol: '?',
+                                priceUsd: 0,
+                                volume24h: 0,
+                                marketCapFdv: 0,
+                                liquidity: 0,
+                                pairCreatedAt: 0,
+                                address: '—',
+                                source: 'unknown',
+                                priceChange6h: 0,
+                                priceChange24h: 0,
+                                raw: {}
+                            };
+                        }
+                    } else {
+                        token = { name:'?', symbol:'?', priceUsd:0, volume24h:0, marketCapFdv:0, liquidity:0, pairCreatedAt:0, address:'—', source:'unknown', priceChange6h:0, priceChange24h:0, raw:{} };
+                    }
+
+                    const safety = computeSafetyScore(token);
+                    const cloneLikelihood = computeCloneLikelihood(token);
+                    let holderPct = null;
+                    let holderCount = null;
+                    
+                    if (token.address &amp;&amp; token.address !== '—') {
+                        holderPct = await analyzeHoldersRPC(token.address);
+                        const scoreData = await fetchSolSnifferScore(token.address); // this also sets holderCountCache if available
+                        if (holderCountCache.has(token.address)) holderCount = holderCountCache.get(token.address);
+                    }
+                    
+                    modalBody.innerHTML = renderAdvancedModal(token, safety, cloneLikelihood, holderPct, holderCount);
+                    
+                    if (token.address &amp;&amp; token.address !== '—') {
+                        analyzeHoldersRPC(token.address).then(pct =&gt; {
+                            const el = document.getElementById(`rpc-holder-eval-${token.address}`);
+                            if (el) {
+                                if (pct !== null) {
+                                    el.textContent = `Top 20 wallets hold ${pct.toFixed(2)}% of supply`;
+                                    el.style.color = pct &lt; 30 ? 'var(--green)' : 'var(--yellow)';
+                                } else {
+                                    el.textContent = 'RPC data unavailable';
+                                    el.style.color = 'var(--red)';
+                                }
+                            }
+                        });
+                    }
+
+                    modal.style.display = 'flex';
+                }
+
+                function showWalletModal(wallet) {
+                    const title = document.querySelector('#detail-modal .modal-title');
+                    if (title) title.innerHTML = '💼 Live Wallet PnL Analysis';
+                    
+                    modalBody.innerHTML = `
+                        &lt;div class="iframe-container"&gt;
+                            &lt;iframe src="https://birdeye.so/solana/wallet-analyzer/${wallet}" title="Birdeye Wallet Analyzer"&gt;&lt;/iframe&gt;
+                        &lt;/div&gt;
+                        &lt;div style="display:flex; justify-content:center; gap: 10px; margin-bottom: 20px; flex-wrap:wrap;"&gt;
+                            &lt;a href="https://solscan.io/account/${wallet}" target="_blank" class="rating-box" style="text-decoration:none; background:rgba(167,139,250,0.1); color:#a78bfa; border-color:#a78bfa; font-size:1rem; padding:10px 20px;"&gt;🔍 View on Solscan&lt;/a&gt;
+                            &lt;a href="https://app.step.finance/en/dashboard?wallet=${wallet}" target="_blank" class="rating-box" style="text-decoration:none; background:rgba(52,211,153,0.1); color:#34d399; border-color:#34d399; font-size:1rem; padding:10px 20px;"&gt;📊 Step Finance PnL&lt;/a&gt;
+                        &lt;/div&gt;
+                    `;
+                    modal.style.display = 'flex';
+                    showToast('Wallet PnL Interface Loaded', 'success');
+                }
+
+                // --- Table functions with optional filters ---
+                async function fetchAllBatchesForTable() {
+                    let allTokens = [];
+                    const limit = userBatchLimit;
+                    for (let i = 0; i &lt; limit; i++) {
+                        const batch = await fetchOneBatch(i);
+                        allTokens.push(...batch);
+                        // update progress bar
+                        const overlay = document.getElementById('table-loading-overlay');
+                        const progressBar = document.getElementById('table-progress-bar');
+                        if (overlay &amp;&amp; progressBar) {
+                            progressBar.style.width = `${((i+1) / limit) * 100}%`;
+                        }
+                    }
+                    // deduplicate
+                    const unique = [];
+                    const seen = new Set();
+                    for (let t of allTokens) {
+                        if (t &amp;&amp; t.address &amp;&amp; !seen.has(t.address)) {
+                            seen.add(t.address);
+                            unique.push(t);
+                        }
+                    }
+                    return unique;
+                }
+
+                async function getTokens(tab) {
+                    await fetchSolPrice();
+                    const overlay = document.getElementById('table-loading-overlay');
+                    const progressBar = document.getElementById('table-progress-bar');
+                    if (overlay) overlay.style.display = 'flex';
+                    if (progressBar) progressBar.style.width = '0%';
+                    
+                    let tokens = await fetchAllBatchesForTable();
+                    
+                    if (overlay) overlay.style.display = 'none';
+                    
+                    if (!tokens || tokens.length === 0) return [];
+                    
+                    // Apply filters to table if enabled
+                    if (filterSettings.applyToTable) {
+                        const filtered = [];
+                        for (let t of tokens) {
+                            if (await passesFilters(t, false)) filtered.push(t);
+                        }
+                        tokens = filtered;
+                    }
+                    
+                    let sorted = [...tokens];
+                    if (tab === 'new') {
+                        sorted.sort((a, b) =&gt; (b.pairCreatedAt || 0) - (a.pairCreatedAt || 0));
+                    } else if (tab === 'volume') {
+                        sorted.sort((a, b) =&gt; (b.volume24h || 0) - (a.volume24h || 0));
+                    } else if (tab === 'mcap') {
+                        sorted.sort((a, b) =&gt; (b.marketCapFdv || 0) - (a.marketCapFdv || 0));
+                    } else if (tab === 'trending') {
+                        sorted.sort((a, b) =&gt; {
+                            const scoreA = (a.volume24h * 0.7) + (a.liquidity * 0.3);
+                            const scoreB = (b.volume24h * 0.7) + (b.liquidity * 0.3);
+                            return scoreB - scoreA;
+                        });
+                    } else if (tab === 'boosted') {
+                        sorted.sort((a, b) =&gt; {
+                            const mcapA = a.marketCapFdv || 1;
+                            const mcapB = b.marketCapFdv || 1;
+                            const boostA = (a.volume24h / mcapA) * (1 + Math.max(0, (a.priceChange6h || 0) / 100));
+                            const boostB = (b.volume24h / mcapB) * (1 + Math.max(0, (b.priceChange6h || 0) / 100));
+                            return boostB - boostA;
+                        });
+                    }
+                    
+                    sorted = sorted.slice(0, 50);
+                    for (let t of sorted) {
+                        t.safetyScore = computeSafetyScore(t);
+                    }
+                    return sorted;
+                }
+
+                function renderTable(tokens) {
+                    tableBody.innerHTML = '';
+                    emptyState.style.display = tokens.length ? 'none' : 'block';
+                    tokens.forEach((t, i) =&gt; {
+                        const priceUsd = t.priceUsd;
+                        const priceSol = solUsdPrice ? priceUsd / solUsdPrice : 0;
+                        const vol = t.volume24h;
+                        const mcap = t.marketCapFdv;
+                        const safetyScore = t.safetyScore;
+                        const rugPercent = getRugPercent(safetyScore);
+                        let riskClass = 'status-med';
+                        let riskText = 'Medium';
+                        if (safetyScore &gt;= 70) {
+                            riskClass = 'status-low';
+                            riskText = 'Low';
+                        } else if (safetyScore &lt; 40) {
+                            riskClass = 'status-high';
+                            riskText = 'High';
+                        }
+                        const tr = document.createElement('tr');
+                        tr.dataset.token = JSON.stringify(t.raw || t).replace(/'/g, "'");
+                        tr.style.cursor = 'pointer';
+                        tr.innerHTML = `
+                            &lt;td title="${i+1}"&gt;${i+1}&lt;/td&gt;
+                            &lt;td title="${t.name}"&gt;${t.name}&lt;/td&gt;
+                            &lt;td title="${t.symbol}"&gt;${t.symbol}&lt;/td&gt;
+                            &lt;td title="${t.source || '—'}"&gt;${formatSourceBadge(t.source)}&lt;/td&gt;
+                            &lt;td title="${priceUsd}"&gt;${formatUSD(priceUsd)}&lt;/td&gt;
+                            &lt;td class="sol-price" title="${priceSol} SOL"&gt;${formatSOL(priceSol)}&lt;/td&gt;
+                            &lt;td title="${vol}"&gt;${formatUSD(vol)}&lt;/td&gt;
+                            &lt;td title="${mcap}"&gt;${formatUSD(mcap)}&lt;/td&gt;
+                            &lt;td title="Safety score ${safetyScore}"&gt;${safetyScore}&lt;/td&gt;
+                            &lt;td title="Estimated risk ${rugPercent}%"&gt;${rugPercent}%&lt;/td&gt;
+                            &lt;td class="${riskClass}" title="${riskText} risk"&gt;${riskText}&lt;/td&gt;
+                            &lt;td&gt;&lt;button class="view-btn" data-token='${JSON.stringify(t.raw || t).replace(/'/g, "'")}'&gt;View&lt;/button&gt;&lt;/td&gt;
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                }
+
+                async function loadCurrentTab() {
+                    const active = document.querySelector('.tab-btn.active');
+                    if (!active) return;
+                    const tab = active.dataset.tab;
+                    tableBody.innerHTML = `&lt;tr&gt;&lt;td colspan="12" style="text-align:center; padding: 30px; color: var(--accent);"&gt;Aggregating deep market data... please wait.&lt;/td&gt;&lt;/tr&gt;`;
+                    emptyState.style.display = 'none';
+                    const tokens = await getTokens(tab);
+                    renderTable(tokens);
+                }
+
+                function showHelp(helpKey) {
+                    const text = helpTexts[helpKey];
+                    if (!text) return;
+                    helpTitle.textContent = `Help: ${helpKey.replace('-', ' ')}`;
+                    helpContent.textContent = text;
+                    helpModal.style.display = 'flex';
+                }
+
+                btnAbout.addEventListener('click', () =&gt; { aboutModal.style.display = 'flex'; });
+                aboutClose.onclick = () =&gt; { aboutModal.style.display = 'none'; };
+                aboutBtnClose.onclick = () =&gt; { aboutModal.style.display = 'none'; };
+                aboutModal.onclick = (e) =&gt; { if (e.target === aboutModal) aboutModal.style.display = 'none'; };
+
+                document.querySelectorAll('.help-icon').forEach(icon =&gt; {
+                    icon.addEventListener('click', (e) =&gt; {
+                        e.stopPropagation();
+                        const helpKey = icon.dataset.help;
+                        if (helpKey) showHelp(helpKey);
+                    });
+                });
+                document.querySelectorAll('.help-icon-small').forEach(icon =&gt; {
+                    icon.addEventListener('click', (e) =&gt; {
+                        e.stopPropagation();
+                        const helpKey = icon.dataset.help;
+                        if (helpKey) showHelp(helpKey);
+                    });
+                });
+
+                document.querySelector('.help-modal-close').onclick = () =&gt; { helpModal.style.display = 'none'; };
+                helpModal.onclick = (e) =&gt; { if (e.target === helpModal) helpModal.style.display = 'none'; };
+
+                document.querySelector('.modal-close').onclick = () =&gt; modal.style.display = 'none';
+                document.querySelector('.close-button').onclick = () =&gt; modal.style.display = 'none';
+                modal.onclick = e =&gt; { if (e.target === modal) modal.style.display = 'none'; };
+
+                document.querySelectorAll('.tab-btn').forEach(btn =&gt; {
+                    if (btn.id === 'btn-about') return;
+                    btn.addEventListener('click', () =&gt; {
+                        document.querySelectorAll('.tab-btn').forEach(b =&gt; b.classList.remove('active'));
+                        btn.classList.add('active');
+                        loadCurrentTab();
+                    });
+                });
+
+                document.getElementById('search-btn').addEventListener('click', async () =&gt; {
+                    const q = document.getElementById('search-input').value.trim();
+                    if (!q) return showToast('Enter a CA or wallet address', 'warn');
+                    showToast('Searching...', 'info');
+                    try {
+                        if (q.length &gt;= 32 &amp;&amp; q.length &lt;= 44) { 
+                            const res = await safeFetch(`https://api.dexscreener.com/latest/dex/tokens/${q}`);
+                            if (res &amp;&amp; res.pairs &amp;&amp; res.pairs.length &gt; 0) {
+                                showModal(res.pairs[0]);
+                                showToast('Token found!', 'success');
+                            } else {
+                                showToast('Opening Wallet Portfolio...', 'info');
+                                showWalletModal(q);
+                            }
+                        } else {
+                            showToast('Invalid format. Must be Solana CA or Wallet.', 'error');
+                        }
+                    } catch (e) {
+                        showToast('Search error: ' + e.message, 'error');
+                    }
+                });
+
+                tableBody.addEventListener('click', (e) =&gt; {
+                    const row = e.target.closest('tr');
+                    if (!row) return;
+                    if (e.target.classList.contains('view-btn')) {
+                        e.stopPropagation();
+                        const token = JSON.parse(e.target.dataset.token);
+                        showModal(token);
+                        return;
+                    }
+                    if (row.dataset.token) {
+                        const token = JSON.parse(row.dataset.token);
+                        showModal(token);
+                    }
+                });
+
+                // Load table first
+                loadCurrentTab().then(() =&gt; {
+                    // After table loads, start signals (already have setTimeout, but we can ensure table loaded)
+                });
+                // Keep periodic table refresh
+                setInterval(loadCurrentTab, 180000);
+            }
+        })();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</textarea>
+
+<script>
+    (function() {
+        var sourceText = document.getElementById('sentinel-source').value;
+        var blob = new Blob([sourceText], { type: 'text/html' });
+        var url = URL.createObjectURL(blob);
+        document.getElementById('sentinel-frame').src = url;
+    })();
+</script>
